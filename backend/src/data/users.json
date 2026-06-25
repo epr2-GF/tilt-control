@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1",
+    "username": "admin",
+    "password": "admin",
+    "role": "admin",
+    "disabled": false,
+    "accessStart": "00:00",
+    "accessEnd": "23:59"
+  },
+  {
+    "id": "2",
+    "username": "andy",
+    "password": "andy",
+    "role": "visiteur",
+    "disabled": false,
+    "accessStart": "10:00",
+    "accessEnd": "18:00"
+  },
+  {
+    "id": "f3c776b0-2462-4d7b-bfb7-bb00ac26e143",
+    "username": "loic",
+    "password": "loic",
+    "role": "visiteur",
+    "disabled": false,
+    "accessStart": "08:00",
+    "accessEnd": "18:00"
+  }
+]
