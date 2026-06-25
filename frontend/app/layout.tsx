@@ -8,10 +8,6 @@ import { ToastProvider } from "@/context/ToastContext";
 import { AuthProvider } from "../context/AuthContext";
 import AppInit from "../components/AppInit";
 
-// 🗑️ REMOVE THESE TWO LINES:
-// import SWRegister from "./sw-register";
-// import SWInit from "./sw-init";
-
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 

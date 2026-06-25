@@ -25,5 +25,14 @@
     "disabled": false,
     "accessStart": "08:00",
     "accessEnd": "18:00"
+  },
+  {
+    "id": "id-1782385634254-d1ddcadae23e9",
+    "username": "bastien",
+    "password": "hello",
+    "role": "visiteur",
+    "disabled": false,
+    "accessStart": "08:00",
+    "accessEnd": "18:00"
   }
 ]
