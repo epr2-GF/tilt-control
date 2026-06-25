@@ -31,7 +31,7 @@ export async function loginService(
 ) {
 
   const res = await fetch(
-    "http://192.168.0.180:4000/auth/login",
+    "/api/auth/login", 
     {
       method: "POST",
       headers: {
@@ -43,6 +43,7 @@ export async function loginService(
       }),
     }
   );
+  // ... rest of your code
 
   const data = await res.json();
 

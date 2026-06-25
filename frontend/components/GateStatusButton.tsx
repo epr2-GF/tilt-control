@@ -19,7 +19,7 @@ export default function GateStatusButton() {
       return;
     }
 
-    const streamUrl = `http://192.168.0.180:4000/devices/stream?token=${encodeURIComponent(activeToken)}`;
+    const streamUrl = `/api/devices/stream?token=${encodeURIComponent(activeToken)}`;
     const eventSource = new EventSource(streamUrl);
 
     eventSource.onmessage = (event) => {

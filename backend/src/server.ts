@@ -36,8 +36,9 @@ app.get("/health", (req, res) => {
 
 const PORT = 4000;
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Backend running on http://192.168.0.180:${PORT}`);
+app.listen(4000, "0.0.0.0", () => {
+  // Use a relative or generic log message
+  console.log(`Backend running on port 4000`);
   
   // ✅ Initialize the persistent cloud connection once the server boots
   initHomeAssistantStream(); 

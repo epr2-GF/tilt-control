@@ -1,4 +1,4 @@
-const API_URL = "http://192.168.0.180:4000";
+const API_URL = "/api";
 
 /* -----------------------------
    SAFE TOKEN GETTER
