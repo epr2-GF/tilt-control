@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
-import cors from "cors";
 
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/userRoutes";
@@ -13,7 +12,6 @@ import { initHomeAssistantStream } from "./services/haStreamService"; // 🔌 St
 const app = express();
 
 // ✅ 1. MIDDLEWARE FIRST (VERY IMPORTANT)
-app.use(cors());
 app.use(express.json());
 
 // ✅ 2. ROUTES
@@ -36,7 +34,7 @@ app.get("/health", (req, res) => {
 
 const PORT = 4000;
 
-app.listen(4000, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", () => {
   // Use a relative or generic log message
   console.log(`Backend running on port 4000`);
   

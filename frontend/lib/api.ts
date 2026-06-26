@@ -1,5 +1,5 @@
+// In lib/api.ts
 const API_URL = "/api";
-
 /* -----------------------------
    SAFE TOKEN GETTER
 ------------------------------ */
@@ -58,6 +58,10 @@ export async function apiFetch(
     throw new Error("Session non autorisée ou expirée");
   }
 
+
+
+
+  
   /* -----------------------------
      ERROR HANDLING
   ------------------------------ */
@@ -108,3 +112,4 @@ export async function toggleUserDisabled(id: string) {
     method: "PATCH",
   });
 }
+
