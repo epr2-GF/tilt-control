@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Env files
+.env
+.env.local
+.env.production
+.env.development
+
+# Build output
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Runtime data (VERY IMPORTANT for you)
+src/data/users.json
+src/data/*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
