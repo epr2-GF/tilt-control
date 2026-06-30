@@ -15,19 +15,22 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "https://tilt44.com",
+  "https://www.tilt44.com",
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow requests with no origin (mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true); // mobile / curl / server-to-server
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      return callback(new Error("Not allowed by CORS"));
+      console.warn("❌ CORS blocked:", origin);
+
+      // IMPORTANT: DO NOT THROW ERROR
+      return callback(null, false);
     },
     credentials: true,
   })
