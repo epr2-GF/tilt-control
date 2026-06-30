@@ -41,9 +41,9 @@ app.use(
 app.use(express.json());
 
 // ✅ 2. ROUTES
-app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
-app.use("/devices", authMiddleware, deviceRoutes); // Protect ALL device routes with your JWT middleware
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/devices", authMiddleware, deviceRoutes); // Protect ALL device routes with your JWT middleware
 
 // ✅ TEST ROUTE
 app.get("/api/test-protected", authMiddleware, (req, res) => {
