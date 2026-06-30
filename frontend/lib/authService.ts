@@ -1,34 +1,26 @@
+// lib/authService.ts
 
-import { getUsersStorage, saveUsersStorage } from "./storage";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 /**
- * Seed default admin user
+ * Safety guard so we NEVER hit undefined.endsWith() type crashes
  */
-export function initUsers() {
-  const existing = getUsersStorage();
-
-  if (!existing || existing.length === 0) {
-    saveUsersStorage([
-      {
-        id: "1",
-        username: "admin",
-        password: "admin",
-        role: "admin",
-        disabled: false,
-        accessStart: "00:00",
-        accessEnd: "23:59",
-      },
-    ]);
+function getApiBase(): string {
+  if (!API_BASE) {
+    console.warn("⚠️ NEXT_PUBLIC_API_URL is missing, defaulting to /api");
+    return "/api";
   }
+
+  return API_BASE;
 }
 
 /**
- * LOGIN LOGIC
+ * LOGIN
  */
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
-
 export async function loginService(username: string, password: string) {
-  const res = await fetch(`${API_BASE}/auth/login`, {
+  const base = getApiBase();
+
+  const res = await fetch(`${base}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -36,25 +28,43 @@ export async function loginService(username: string, password: string) {
     body: JSON.stringify({ username, password }),
   });
 
-  const data = await res.json().catch(() => ({})); // ✅ REQUIRED
+  let data: any = {};
 
-  const errorMap: Record<string, string> = {
-    "Outside permitted hours":
-      "⛔ Accès refusé : vous êtes en dehors des heures autorisées",
-    "Account disabled": "❌ Compte désactivé",
-    "Invalid token": "❌ Session invalide",
-    "User not found": "❌ Utilisateur introuvable",
-  };
+  try {
+    data = await res.json();
+  } catch {
+    // ignore invalid JSON responses
+  }
 
   if (!res.ok) {
-    const msg =
-      data.message && errorMap[data.message]
-        ? errorMap[data.message]
-        : data.message || "Échec de connexion";
-
-    throw new Error(msg);
+    throw new Error(data?.message || "Échec de connexion");
   }
 
   return data;
 }
 
+/**
+ * GET CURRENT USER
+ */
+export async function getMe(token?: string) {
+  const base = getApiBase();
+
+  const res = await fetch(`${base}/auth/me`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  let data: any = {};
+
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Session invalide");
+  }
+
+  return data;
+}
