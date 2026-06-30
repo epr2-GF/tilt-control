@@ -30,6 +30,26 @@ router.post("/login", (req, res) => {
     });
   }
 
+  // 🕒 TIME CHECK (ONLY HERE)
+  if (user.accessStart && user.accessEnd) {
+    const now = new Date();
+
+    const [sh, sm] = user.accessStart.split(":").map(Number);
+    const [eh, em] = user.accessEnd.split(":").map(Number);
+
+    const start = new Date();
+    start.setHours(sh, sm, 0, 0);
+
+    const end = new Date();
+    end.setHours(eh, em, 59, 999);
+
+    if (now < start || now > end) {
+      return res.status(403).json({
+        message: "Outside permitted hours",
+      });
+    }
+  }
+
   const token = jwt.sign(
     {
       id: user.id,
@@ -45,17 +65,11 @@ router.post("/login", (req, res) => {
       id: user.id,
       username: user.username,
       role: user.role,
-      disabled: user.disabled,
-      accessStart: user.accessStart,
-      accessEnd: user.accessEnd,
     },
     token,
   });
 });
 
-/* -----------------------------
-   👇 THIS IS STEP 2 (ADD HERE)
------------------------------ */
 router.get("/me", authMiddleware, (req, res) => {
   console.log("AUTH HEADER:", req.headers.authorization);
   

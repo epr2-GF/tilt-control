@@ -15,7 +15,7 @@
     "role": "visiteur",
     "disabled": false,
     "accessStart": "10:00",
-    "accessEnd": "18:00"
+    "accessEnd": "13:54"
   },
   {
     "id": "f3c776b0-2462-4d7b-bfb7-bb00ac26e143",
@@ -23,16 +23,7 @@
     "password": "loic",
     "role": "visiteur",
     "disabled": false,
-    "accessStart": "08:00",
-    "accessEnd": "18:00"
-  },
-  {
-    "id": "id-1782385634254-d1ddcadae23e9",
-    "username": "bastien",
-    "password": "hello",
-    "role": "visiteur",
-    "disabled": false,
-    "accessStart": "08:00",
+    "accessStart": "17:00",
     "accessEnd": "18:00"
   }
 ]

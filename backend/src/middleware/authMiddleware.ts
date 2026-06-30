@@ -10,11 +10,10 @@ export function authMiddleware(
 ) {
   try {
     const authHeader = req.headers.authorization;
-    const queryToken = req.query.token as string; // 👈 Extract token from URL query string fallback
-    
+    const queryToken = req.query.token as string;
+
     let token = null;
 
-    // 1. Extract token from either the Authorization header OR the URL query parameter
     if (authHeader) {
       token = authHeader.startsWith("Bearer ")
         ? authHeader.slice(7)
@@ -23,15 +22,12 @@ export function authMiddleware(
       token = queryToken;
     }
 
-    // 2. Fail early if no token was provided in either location
     if (!token) {
       return res.status(401).json({ message: "No token provided or invalid format" });
     }
 
-    // 3. Verify the signature
     const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-    // ✅ USE SINGLE SOURCE OF TRUTH
     const users = readUsers();
     const currentUser = users.find((u) => u.id === decoded.id);
 
@@ -39,12 +35,30 @@ export function authMiddleware(
       return res.status(401).json({ message: "User not found" });
     }
 
-    // 🚫 BLOCK DISABLED USERS
     if (currentUser.disabled) {
       return res.status(403).json({ message: "Account disabled" });
     }
 
-    // Attach user context downstream
+    // 🕒 TIME CHECK (NEW)
+    if (currentUser.accessStart && currentUser.accessEnd) {
+      const now = new Date();
+
+      const [sh, sm] = currentUser.accessStart.split(":").map(Number);
+      const [eh, em] = currentUser.accessEnd.split(":").map(Number);
+
+      const start = new Date();
+      start.setHours(sh, sm, 0, 0);
+
+      const end = new Date();
+      end.setHours(eh, em, 59, 999);
+
+      if (now < start || now > end) {
+        return res.status(403).json({
+          message: "Outside permitted hours",
+        });
+      }
+    }
+
     (req as any).user = {
       id: currentUser.id,
       username: currentUser.username,

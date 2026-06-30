@@ -22,7 +22,7 @@ export default function DeployButton({ user }: { user: User }) {
       onClick={handleClick}
       className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 transition"
     >
-      Déployer
+      Partager
     </button>
   );
 }

@@ -117,18 +117,6 @@ export default function HomePage() {
     <GateStatusButton />
   )}
 
-  {canUseControl(role, "porte-entrepot") && (
-    <ControlCard
-      title="Porte Entrepôt"
-      description="Accès entrepôt"
-      icon={<Warehouse size={20} />}
-    >
-      <button className="w-full px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg transition">
-        Activer
-      </button>
-    </ControlCard>
-  )}
-
         {canUseControl(role, "porte-entrepot") && (
           <ControlCard
             title="Porte Entrepôt"

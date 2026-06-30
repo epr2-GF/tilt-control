@@ -12,14 +12,13 @@ ${user.accessStart || "00:00"} → ${user.accessEnd || "23:59"}
 
 Lien de connexion:
 
-http://192.168.0.180:3000
+www.tilt44.com
 
 Veuillez conserver ces identifiants en lieu sûr.
 
-📱 Si le lien n'est pas cliquable dans WhatsApp,
-copiez-le dans votre navigateur.
+📱 Si le lien n'est pas cliquable dans WhatsApp, copiez-le dans votre navigateur.
 
-Après connexion, ajoutez l'application à l'écran d'accueil.
+Après connexion, appuyez sur l'icône à trois boutons - ajoutez l'application à l'écran d'accueil - Installer en tant qu'application si disponible
 
   `.trim();
 }

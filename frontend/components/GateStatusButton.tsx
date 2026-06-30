@@ -5,6 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { triggerDeviceControl } from "@/services/deviceService";
+import { apiFetch } from "@/lib/api";
 
 export default function GateStatusButton() {
   const { user, token } = useAuth(); 
@@ -20,6 +21,24 @@ export default function GateStatusButton() {
       console.warn("⚠️ GateStatusButton: Postponing SSE connection. No token found.");
       return;
     }
+
+const loadInitialState = async () => {
+  try {
+    const states = await apiFetch("/devices/state");
+
+    console.log("📋 Initial HA States:", states);
+
+    const gate = states["input_boolean.fakegate"];
+
+    if (gate) {
+      setGateState(gate === "on" ? "Ouvert" : "Fermé");
+    }
+  } catch (err) {
+    console.error("Failed to load initial states:", err);
+  }
+};
+
+loadInitialState();
 
     const streamUrl = `${API_URL}/devices/stream?token=${encodeURIComponent(activeToken)}`;
     const eventSource = new EventSource(streamUrl);

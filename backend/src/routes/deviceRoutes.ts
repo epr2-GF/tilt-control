@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { homeAssistantService } from "../services/homeAssistantService";
-import { registerStreamClient } from "../services/haStreamService";
+import {
+  registerStreamClient,
+  getCurrentStates,
+} from "../services/haStreamService";
+
 
 const router = Router();
 
@@ -51,6 +55,15 @@ router.post("/trigger", async (req, res) => {
     return res.status(500).json({ error: error.message || "Failed to execute HA service" });
   }
 });
+
+/**
+ * GET /devices/state
+ * Returns the latest cached Home Assistant states
+ */
+router.get("/state", (req, res) => {
+  res.json(getCurrentStates());
+});
+
 
 /**
  * GET /devices/stream

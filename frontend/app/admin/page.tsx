@@ -28,7 +28,6 @@ import {
 
 export default function AdminPage() {
   const router = useRouter();
-  // 1. Remove 'loading', we just need 'user'
   const { user } = useAuth(); 
   const { showToast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
@@ -106,9 +105,9 @@ async function handleCreate() {
       accessEnd: "18:00",
     });
 
-    showToast("User created successfully", "success");
+    showToast("Utilisateur créé avec succès", "success");
   } catch (err) {
-    showToast("Failed to create user", "error");
+    showToast("Échec de la création de l'utilisateur", "error");
   }
 }
 
@@ -125,7 +124,7 @@ async function handleDelete(id: string) {
     if (err instanceof Error) {
       showToast(err.message, "error");
     } else {
-      showToast("Failed to delete user", "error");
+      showToast("Échec de la suppression de l'utilisateur", "error");
     }
   }
 }
@@ -138,9 +137,9 @@ async function  handleToggleDisabled(id: string) {
     const updated = await toggleUserDisabled(id);
     setUsers(updated);
 
-    showToast("User status updated", "success");
+    showToast("Statut de l'utilisateur mis à jour", "success");
   } catch (err) {
-    showToast("Failed to update user", "error");
+    showToast("Échec de la mise à jour de l'utilisateur", "error");
   }
 }
 
@@ -157,7 +156,7 @@ async function handleSave() {
     setEditingUser(null);
     setShowPassword(false);
 
-    showToast("User updated successfully", "success");
+    showToast("Statut de l'utilisateur mis à jour", "success");
   } catch (err) {
     if (err instanceof Error) {
       showToast(err.message, "error");
@@ -289,12 +288,12 @@ async function handleSave() {
     <div className="bg-slate-900 p-6 rounded-xl w-[360px]">
 
       <h2 className="text-lg font-bold mb-2 text-red-400">
-        Delete user
+        Supprimer l'utilisateur
       </h2>
 
       <p className="text-slate-400 mb-5">
-        Are you sure you want to delete this user?
-        This action cannot be undone.
+        Êtes-vous sûr de vouloir supprimer cet utilisateur ?
+        Cette action est irréversible.
       </p>
 
       <div className="flex justify-end gap-2">
@@ -303,7 +302,7 @@ async function handleSave() {
           onClick={() => setConfirmDeleteId(null)}
           className="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600"
         >
-          Cancel
+          Annuler
         </button>
 
         <button
@@ -313,7 +312,7 @@ async function handleSave() {
           }}
           className="px-3 py-1 rounded bg-red-600 hover:bg-red-500"
         >
-          Delete
+          Supprimer
         </button>
 
       </div>

@@ -49,30 +49,29 @@ export function AuthProvider({
   /* -----------------------------
      LOGIN
   ------------------------------ */
-  const loginUser = async (authToken: string) => {
-    setToken(authToken);
-    localStorage.setItem("smart-site-token", authToken);
+const loginUser = async (authToken: string) => {
+  setToken(authToken);
+  localStorage.setItem("smart-site-token", authToken);
 
-    try {
-      const me = await getMe();
-      setUser(me);
-    } catch (err) {
-      console.error("Login verification failed:", err);
-      logout();
-    }
-  };
+  try {
+    const me = await getMe();
+    setUser(me);
+  } catch (err) {
+    console.error("Login verification failed:", err);
+
+    // ❌ DO NOT logout or redirect
+    setUser(null);
+  }
+};
 
   /* -----------------------------
      LOGOUT
   ------------------------------ */
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem("smart-site-token");
-
-    // Clear session state cleanly before jumping pages
-    window.location.href = "/login";
-  };
+const logout = () => {
+  setUser(null);
+  setToken(null);
+  localStorage.removeItem("smart-site-token");
+};
 
   /* -----------------------------
      REFRESH USER
@@ -86,6 +85,24 @@ export function AuthProvider({
       logout();
     }
   };
+
+/* -----------------------------
+   PERIODIC SESSION VALIDATION
+------------------------------ */
+useEffect(() => {
+  // Don't start polling until a user is logged in
+  if (!user) return;
+
+  const interval = setInterval(async () => {
+    try {
+      await refreshUser();
+    } catch (err) {
+      console.error("Periodic session check failed:", err);
+    }
+  }, 30000); // 30 seconds
+
+  return () => clearInterval(interval);
+}, [user]);
 
  /* -----------------------------
      INIT SESSION (RUN ONCE WITH MOBILE DIAGNOSTICS)

@@ -1,5 +1,5 @@
 // In lib/api.ts
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 /* -----------------------------
    SAFE TOKEN GETTER
 ------------------------------ */
@@ -45,18 +45,26 @@ export async function apiFetch(
 /* -----------------------------
       AUTH HANDLING (FIXED origin loop check)
   ------------------------------ */
-  if (res.status === 401 || res.status === 403) {
-    if (typeof window !== "undefined") {
-      // CRITICAL GAP FIX: Only wipe the session and redirect if we aren't ALREADY sitting on the login route.
-      // This protects your cold startup sequences from stepping on each other's toes.
-      if (window.location.pathname !== "/login") {
-        console.warn("Unauthorized API Handshake - Resetting access session.");
-        localStorage.removeItem("smart-site-token");
-        window.location.href = "/login";
-      }
+if (res.status === 401 || res.status === 403) {
+  const error = await res.json().catch(() => ({}));
+
+  const message = error.message || "Session non autorisée ou expirée";
+
+  if (typeof window !== "undefined") {
+    if (window.location.pathname !== "/login") {
+      console.warn("Unauthorized API Handshake - Resetting access session.");
+
+      localStorage.removeItem("smart-site-token");
+
+      // We will use this after redirect
+      sessionStorage.setItem("logout-message", message);
+
+      window.location.href = "/login";
     }
-    throw new Error("Session non autorisée ou expirée");
   }
+
+  throw new Error(message);
+}
 
 
 

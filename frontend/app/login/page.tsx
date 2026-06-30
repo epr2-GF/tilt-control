@@ -27,9 +27,9 @@ const handleLogin = async () => {
     await loginUser(data.token);
 
     router.replace("/");
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    setError("Identifiants incorrects.");
+    setError(err.message || "Échec de connexion");
   }
 };
 
