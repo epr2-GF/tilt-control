@@ -25,27 +25,21 @@ export function initUsers() {
 /**
  * LOGIN LOGIC
  */
-export async function loginService(
-  username: string,
-  password: string
-) {
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
-  const res = await fetch(
-    "/api/auth/login", 
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username,
-        password,
-      }),
-    }
-  );
-  // ... rest of your code
+export async function loginService(username: string, password: string) {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      username,
+      password,
+    }),
+  });
 
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
     throw new Error(data.message || "Login failed");
@@ -54,21 +48,3 @@ export async function loginService(
   return data;
 }
 
-// export async function loginService(username: string, password: string) {
-//  console.log("1️⃣ loginService called");
-//   const res = await fetch("http://192.168.0.180:4000/auth/login", {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({ username, password }),
-//   });
-
-//   const data = await res.json();
-// console.log("2️⃣ response received");
-//   if (!res.ok) {
-//     throw new Error(data.message || "Login failed");
-//   }
-
-//   return data;
-// }

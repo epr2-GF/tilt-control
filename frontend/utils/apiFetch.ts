@@ -1,5 +1,7 @@
 
-const BACKEND_URL = "/api";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" ? window.location.origin : "");
 
 interface FetchOptions extends RequestInit {
   body?: any;
@@ -7,7 +9,11 @@ interface FetchOptions extends RequestInit {
 
 export async function apiFetch(endpoint: string, options: FetchOptions = {}) {
   // 1. Ensure the endpoint starts with a slash
-  const url = `${BACKEND_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+const url =
+  BACKEND_URL.endsWith("/api") && cleanEndpoint.startsWith("/api")
+    ? `${BACKEND_URL.replace(/\/$/, "")}${cleanEndpoint.replace("/api", "")}`
+    : `${BACKEND_URL.replace(/\/$/, "")}${cleanEndpoint}`;
 
   // 2. Prepare default headers
   const headers: Record<string, string> = {

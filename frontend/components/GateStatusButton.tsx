@@ -1,5 +1,7 @@
 "use client";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { triggerDeviceControl } from "@/services/deviceService";
@@ -19,7 +21,7 @@ export default function GateStatusButton() {
       return;
     }
 
-    const streamUrl = `/api/devices/stream?token=${encodeURIComponent(activeToken)}`;
+    const streamUrl = `${API_URL}/devices/stream?token=${encodeURIComponent(activeToken)}`;
     const eventSource = new EventSource(streamUrl);
 
     eventSource.onmessage = (event) => {

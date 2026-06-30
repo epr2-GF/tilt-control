@@ -1,5 +1,5 @@
 // In lib/api.ts
-const API_URL = "/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 /* -----------------------------
    SAFE TOKEN GETTER
 ------------------------------ */
