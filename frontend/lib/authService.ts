@@ -2,6 +2,8 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
+import { getUsersStorage, saveUsersStorage } from "./storage";
+
 /**
  * Safety guard so we NEVER hit undefined.endsWith() type crashes
  */
@@ -13,6 +15,26 @@ function getApiBase(): string {
 
   return API_BASE;
 }
+
+export function initUsers() {
+  const existing = getUsersStorage();
+
+  if (!existing || existing.length === 0) {
+    saveUsersStorage([
+      {
+        id: "1",
+        username: "admin",
+        password: "admin",
+        role: "admin",
+        disabled: false,
+        accessStart: "00:00",
+        accessEnd: "23:59",
+      },
+    ]);
+  }
+}
+
+
 
 /**
  * LOGIN
