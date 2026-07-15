@@ -24,10 +24,33 @@ export function getCurrentStates() {
 }
 
 export function registerStreamClient(res: any) {
+
   frontendClients.push(res);
 
+  console.log(
+    `✅ SSE client connected. Active clients: ${frontendClients.length}`
+  );
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(": heartbeat\n\n");
+    } catch {
+      clearInterval(heartbeat);
+    }
+  }, 25000);
+
+
   res.on("close", () => {
-    frontendClients = frontendClients.filter((client) => client !== res);
+
+    clearInterval(heartbeat);
+
+    frontendClients = frontendClients.filter(
+      (client) => client !== res
+    );
+
+    console.log(
+      `❌ SSE client disconnected. Active clients: ${frontendClients.length}`
+    );
   });
 }
 
