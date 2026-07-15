@@ -55,13 +55,33 @@ export function registerStreamClient(res: any) {
 }
 
 function broadcastToFrontend(entityId: string, newState: string) {
+
   const data = JSON.stringify({
     entityId,
     state: newState,
   });
 
+  console.log(
+    `📡 Broadcasting ${entityId}:${newState} to ${frontendClients.length} clients`
+  );
+
+
   frontendClients.forEach((client) => {
-    client.write(`data: ${data}\n\n`);
+
+    try {
+
+      client.write(`data: ${data}\n\n`);
+
+    } catch (err) {
+
+      console.error("❌ SSE write failed. Removing client.");
+
+      frontendClients = frontendClients.filter(
+        (c) => c !== client
+      );
+
+    }
+
   });
 }
 

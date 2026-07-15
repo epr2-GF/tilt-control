@@ -70,13 +70,24 @@ router.get("/state", (req, res) => {
  * Establishes an HTTP text-stream (SSE) connection for real-time state push notifications
  */
 router.get("/stream", (req, res) => {
-  // Set headers required for Server-Sent Events stream connection
+
+  // SSE headers
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
-  res.flushHeaders(); // Establish the connection tunnel immediately
 
-  // Register this browser client to receive live broadcasts
+  // Important for Nginx / reverse proxies
+  res.setHeader("X-Accel-Buffering", "no");
+
+  // Immediately open stream
+  res.flushHeaders();
+
+  // Send initial comment so connection is active
+  res.write(": connected\n\n");
+
+  console.log("📡 SSE stream opened");
+
+  // Register browser client
   registerStreamClient(res);
 });
 

@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { triggerDeviceControl } from "@/services/deviceService";
 import { apiFetch } from "@/lib/api";
+import ControlCard from "@/components/ControlCard";
+import { ArrowLeftRight } from "lucide-react";
 
 export default function GateStatusButton() {
   const { user, token } = useAuth(); 
@@ -42,6 +44,9 @@ loadInitialState();
 
     const streamUrl = `${API_URL}/devices/stream?token=${encodeURIComponent(activeToken)}`;
     const eventSource = new EventSource(streamUrl);
+    eventSource.onopen = () => {
+  console.log("🟢 SSE connection opened");
+};
 
     eventSource.onmessage = (event) => {
       try {
@@ -62,9 +67,16 @@ loadInitialState();
       }
     };
 
-    eventSource.onerror = () => {
-      console.warn("SSE stream link dropped. Reconnecting...");
-    };
+eventSource.onopen = () => {
+  console.log("🟢 SSE connection opened");
+};
+
+ eventSource.onerror = () => {
+  console.warn(
+    "🔴 SSE connection error. ReadyState:",
+    eventSource.readyState
+  );
+};
 
     return () => eventSource.close();
   }, [user, token]);
@@ -90,23 +102,15 @@ const handleAction = async () => {
 
   const isOuvert = gateState === "Ouvert";
 
-  return (
-    <div className="w-full flex flex-col gap-4 p-4 bg-slate-900 border border-slate-800 rounded-xl">
-      
-      {/* 📐 Header row with Title on left, Badge on the right */}
-      <div className="flex items-center justify-between w-full">
-        <h2 className="text-base font-semibold text-slate-200">Portail Principal</h2>
-        
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors duration-300
-          ${isOuvert 
-            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" 
-            : "bg-rose-500/10 border-rose-500/30 text-rose-400"
-          }`}
-        >
-          <span className={`w-2 h-2 rounded-full ${isOuvert ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
-          {gateState}
-        </div>
-      </div>
+return (
+<ControlCard
+  title="Portail Principal"
+  description="Accès principal"
+  icon={<ArrowLeftRight size={20} />}
+  status={gateState}
+  statusColor={isOuvert ? "green" : "red"}
+>
+
 
       {/* Action Trigger Button */}
       <button
@@ -121,6 +125,6 @@ const handleAction = async () => {
         {isPending ? "Action en cours..." : "Actionner le portail"}
       </button>
       
-    </div>
+    </ControlCard>
   );
 }
