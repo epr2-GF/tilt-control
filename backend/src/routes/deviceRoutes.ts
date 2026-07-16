@@ -19,6 +19,10 @@ const DEVICE_MAP: Record<string, { entityId: string; domain: string }> = {
     entityId: "light.outside_lights", 
     domain: "light" 
   },
+  "porte-entrepot": {
+    entityId: "input_boolean.fakedoor",
+    domain: "input_boolean"
+},
 };
 
 /**

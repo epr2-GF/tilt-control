@@ -76,15 +76,30 @@ const logout = () => {
   /* -----------------------------
      REFRESH USER
   ------------------------------ */
-  const refreshUser = async () => {
-    try {
-      const me = await getMe();
-      setUser(me);
-    } catch (err) {
-      console.error("GETME FAILED:", err);
-      logout();
-    }
-  };
+const refreshUser = async () => {
+  try {
+    const me = await getMe();
+
+    setUser(currentUser => {
+
+      if (
+        currentUser &&
+        currentUser.id === me.id &&
+        currentUser.username === me.username &&
+        currentUser.role === me.role &&
+        currentUser.disabled === me.disabled
+      ) {
+        return currentUser;
+      }
+
+      return me;
+    });
+
+  } catch (err) {
+    console.error("GETME FAILED:", err);
+    logout();
+  }
+};
 
 /* -----------------------------
    PERIODIC SESSION VALIDATION

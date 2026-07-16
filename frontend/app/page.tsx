@@ -4,9 +4,10 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { canAccessZone, canUseControl } from "@/lib/permissions";
-import { DoorOpen, Warehouse, Lightbulb, LogOut, Users, Map } from "lucide-react";
+import { Lightbulb, LogOut, Users, Map } from "lucide-react";
 import ControlCard from "@/components/ControlCard";
-import GateStatusButton from "@/components/GateStatusButton"; // 👈 Import our new module here
+import GateStatusButton from "@/components/GateStatusButton"; 
+import WarehouseDoorButton from "@/components/WarehouseDoorButton";
 
 export default function HomePage() {
   const router = useRouter();
@@ -117,17 +118,9 @@ export default function HomePage() {
     <GateStatusButton />
   )}
 
-        {canUseControl(role, "porte-entrepot") && (
-          <ControlCard
-            title="Porte Entrepôt"
-            description="Accès entrepôt"
-            icon={<Warehouse size={20} />}
-          >
-            <button className="w-full px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg transition">
-              Activer
-            </button>
-          </ControlCard>
-        )}
+{canUseControl(role, "porte-entrepot") && (
+  <WarehouseDoorButton />
+)}
 
         {canUseControl(role, "eclairage-exterieur") && (
           <ControlCard

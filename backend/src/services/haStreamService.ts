@@ -15,8 +15,8 @@ const entityStateCache: Record<string, string> = {};
 // Whitelist of entities our web app actually cares about
 const ALLOWED_ENTITIES = [
   "input_boolean.fakegate",
-  "light.outside_lights",
-  "warehouse.door",
+  "input_boolean.fakedoor",
+
 ];
 
 export function getCurrentStates() {

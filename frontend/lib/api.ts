@@ -18,8 +18,6 @@ export async function apiFetch(
 ) {
   const token = tokenOverride ?? getToken();
 
-  console.log("TOKEN SENT:", token);
-
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string> || {}),
