@@ -54,7 +54,7 @@ export function authMiddleware(
 
       if (now < start || now > end) {
         return res.status(403).json({
-          message: "Outside permitted hours",
+          message: "En dehors des horaires autorisés",
         });
       }
     }

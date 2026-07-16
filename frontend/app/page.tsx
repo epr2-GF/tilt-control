@@ -116,7 +116,8 @@ export default function HomePage() {
 
 <BinaryControl
   controlId="portail-principal"
-  entityId="input_boolean.fakegate"
+  commandEntity="input_boolean.fakegate"
+  statusEntity="input_boolean.fakegate"
 
   title="Portail Principal"
   description="Entrée principale"
@@ -133,7 +134,8 @@ export default function HomePage() {
 {canUseControl(role, "porte-entrepot") && (
   <BinaryControl
   controlId="porte-entrepot"
-  entityId="input_boolean.fakedoor"
+  commandEntity="input_boolean.fakedoor"
+  statusEntity="input_boolean.fakedoor"
 
   title="Porte Entrepôt"
   description="Accès principal"
@@ -149,7 +151,8 @@ export default function HomePage() {
 
 <BinaryControl
     controlId="eclairage-site"
-    entityId="input_boolean.fakesitelights"
+    commandEntity="input_boolean.fakesitelights"
+    statusEntity="input_boolean.fakesitelights"
 
     title="Éclairage Site"
     description="Éclairage extérieur"
@@ -164,7 +167,8 @@ export default function HomePage() {
 
 <BinaryControl
   controlId="eclairage-salle"
-  entityId="input_boolean.fakesallelights"
+  commandEntity="input_boolean.fakesallelights"
+  statusEntity="input_boolean.fakesallelights"
 
   title="Éclairage Salle"
   description="Salle principale"

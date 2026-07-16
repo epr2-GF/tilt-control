@@ -7,7 +7,9 @@ import { triggerDeviceControl } from "@/services/deviceService";
 
 type Props = {
   controlId: string;
-  entityId: string;
+
+  commandEntity: string;
+  statusEntity: string;
 
   title: string;
   description: string;
@@ -22,7 +24,8 @@ type Props = {
 
 export default function BinaryControl({
   controlId,
-  entityId,
+  commandEntity,
+  statusEntity,
   title,
   description,
   icon,
@@ -34,9 +37,9 @@ export default function BinaryControl({
 
   const [isPending, setIsPending] = useState(false);
 
-  const device = states[entityId];
+const statusDevice = states[statusEntity];
 
-  const isOn = device?.state === "on";
+const isOn = statusDevice?.state === "on";
 
   const handleToggle = async () => {
     if (isPending) return;

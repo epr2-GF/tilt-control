@@ -7,13 +7,13 @@ const HA_TOKEN = process.env.HA_TOKEN || "";
 const WS_URL = HA_URL.replace(/^http/, "ws") + "/api/websocket";
 
 // Track active client streams (Next.js frontend listeners)
-let frontendClients: any[] = [];
+let frontendClients = new Set<any>();
 
 // Current state cache
 const entityStateCache: Record<string, any> = {};
 
 // Whitelist of entities our web app actually cares about
-const ALLOWED_ENTITIES = [
+const SSE_ENTITIES = [
   "input_boolean.fakegate",
   "input_boolean.fakedoor",
   "input_boolean.fakesallelights",
@@ -29,10 +29,10 @@ export function getCurrentStates() {
 
 export function registerStreamClient(res: any) {
 
-  frontendClients.push(res);
+  frontendClients.add(res);
 
   console.log(
-    `✅ SSE client connected. Active clients: ${frontendClients.length}`
+    `✅ SSE client connected. Active clients: ${frontendClients.size}`
   );
 
   const heartbeat = setInterval(() => {
@@ -48,12 +48,10 @@ export function registerStreamClient(res: any) {
 
     clearInterval(heartbeat);
 
-    frontendClients = frontendClients.filter(
-      (client) => client !== res
-    );
+    frontendClients.delete(res);
 
     console.log(
-      `❌ SSE client disconnected. Active clients: ${frontendClients.length}`
+      `❌ SSE client disconnected. Active clients: ${frontendClients.size}`
     );
   });
 }
@@ -67,7 +65,7 @@ function broadcastToFrontend(entityId: string, newState: any) {
   });
 
   console.log(
-    `📡 Broadcasting ${entityId}:${newState.state} to ${frontendClients.length} clients`
+    `📡 Broadcasting ${entityId}:${newState.state} to ${frontendClients.size} clients`
   );
 
 
@@ -81,9 +79,7 @@ function broadcastToFrontend(entityId: string, newState: any) {
 
       console.error("❌ SSE write failed. Removing client.");
 
-      frontendClients = frontendClients.filter(
-        (c) => c !== client
-      );
+      frontendClients.delete(client);
 
     }
 
@@ -155,7 +151,7 @@ if (
 
   msg.result.forEach((entity: any) => {
 
-    if (ALLOWED_ENTITIES.includes(entity.entity_id)) {
+    if (SSE_ENTITIES.includes(entity.entity_id)) {
 
       entityStateCache[entity.entity_id] = {
         state: entity.state,
@@ -199,7 +195,7 @@ if (
       if (
         entityId &&
         newState &&
-        ALLOWED_ENTITIES.includes(entityId)
+        SSE_ENTITIES.includes(entityId)
       ) {
         entityStateCache[entityId] = {
   state: newState.state,
