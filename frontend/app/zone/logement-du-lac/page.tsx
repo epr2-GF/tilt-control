@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { canAccessZone } from "@/lib/permissions";
-
+import RollerShutterCard from "@/components/RollerShutterCard";
 import { House } from "lucide-react";
 
 import BackButton from "@/components/BackButton";
@@ -32,7 +32,7 @@ if (!canAccessZone(user.role, "logement-du-lac")) {
   return null;
 }
 
-  return (
+   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-6">
 
       <div className="mb-6">
@@ -44,6 +44,12 @@ if (!canAccessZone(user.role, "logement-du-lac")) {
         subtitle="Gestion du logement du lac"
         icon={<House size={28} />}
       />
+
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <RollerShutterCard />
+
+      </div>
 
     </main>
   );

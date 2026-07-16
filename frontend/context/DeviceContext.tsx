@@ -14,22 +14,25 @@ import { useAuth } from "./AuthContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
-
-type DeviceStates = {
-  [entityId: string]: string;
+type DeviceValue = {
+  state: string;
+  attributes?: {
+    current_position?: number;
+    [key: string]: any;
+  };
 };
 
+type DeviceStates = {
+  [entityId: string]: DeviceValue;
+};
 
 type DeviceContextType = {
   states: DeviceStates;
 };
 
-
 const DeviceContext = createContext<DeviceContextType | undefined>(
   undefined
 );
-
-
 
 export function DeviceProvider({
   children,
@@ -41,11 +44,8 @@ export function DeviceProvider({
 
   const [states, setStates] = useState<DeviceStates>({});
 
-
   // Prevent duplicate SSE connections
   const eventSourceRef = useRef<EventSource | null>(null);
-
-
 
   useEffect(() => {
 
@@ -55,13 +55,9 @@ export function DeviceProvider({
         ? localStorage.getItem("smart-site-token")
         : null);
 
-
-
     if (!activeToken || user === undefined) {
       return;
     }
-
-
 
     // -------------------------------------------------
     // Prevent duplicate connections
@@ -76,8 +72,6 @@ export function DeviceProvider({
       return;
     }
 
-
-
     // -------------------------------------------------
     // Load initial HA states
     // -------------------------------------------------
@@ -88,15 +82,7 @@ export function DeviceProvider({
 
         const data = await apiFetch("/devices/state");
 
-
-        console.log(
-          "📋 Initial device states:",
-          data
-        );
-
-
         setStates(data);
-
 
       } catch (err) {
 
@@ -109,11 +95,7 @@ export function DeviceProvider({
 
     };
 
-
     loadStates();
-
-
-
 
     // -------------------------------------------------
     // Create ONE global SSE connection
@@ -122,23 +104,14 @@ export function DeviceProvider({
     const streamUrl =
       `${API_URL}/devices/stream?token=${encodeURIComponent(activeToken)}`;
 
-
-
     console.log(
       "🔌 Opening global SSE connection"
     );
 
-
-
     const eventSource =
       new EventSource(streamUrl);
 
-
-
     eventSourceRef.current = eventSource;
-
-
-
 
     eventSource.onopen = () => {
 
@@ -148,9 +121,6 @@ export function DeviceProvider({
 
     };
 
-
-
-
     eventSource.onmessage = (event) => {
 
       try {
@@ -158,27 +128,17 @@ export function DeviceProvider({
         const update =
           JSON.parse(event.data);
 
+       if (update.entityId) {
 
+  setStates(previous => ({
+    ...previous,
+    [update.entityId]: {
+      state: update.state,
+      attributes: update.attributes,
+    },
+  }));
 
-        console.log(
-          "📥 Device update:",
-          update
-        );
-
-
-
-        if (
-          update.entityId &&
-          update.state
-        ) {
-
-          setStates(previous => ({
-            ...previous,
-            [update.entityId]: update.state,
-          }));
-
-        }
-
+}
 
 
       } catch(err) {
@@ -192,9 +152,6 @@ export function DeviceProvider({
 
     };
 
-
-
-
     eventSource.onerror = () => {
 
       console.warn(
@@ -204,33 +161,16 @@ export function DeviceProvider({
 
     };
 
-
-
-
-
     return () => {
-
 
       console.log(
         "🔌 Closing global SSE"
       );
-
-
       eventSource.close();
-
-
       eventSourceRef.current = null;
-
-
     };
 
-
-
   }, [user, token]);
-
-
-
-
 
   return (
 
@@ -248,17 +188,10 @@ export function DeviceProvider({
 
 }
 
-
-
-
-
 export function useDevices() {
-
 
   const context =
     useContext(DeviceContext);
-
-
 
   if (!context) {
 
@@ -267,7 +200,6 @@ export function useDevices() {
     );
 
   }
-
 
   return context;
 

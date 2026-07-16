@@ -4,10 +4,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { canAccessZone, canUseControl } from "@/lib/permissions";
-import { Lightbulb, LogOut, Users, Map } from "lucide-react";
+import { ArrowRightLeft,Warehouse, Lightbulb, LogOut, Users, Map } from "lucide-react";
 import ControlCard from "@/components/ControlCard";
-import GateStatusButton from "@/components/GateStatusButton"; 
-import WarehouseDoorButton from "@/components/WarehouseDoorButton";
+import BinaryControl from "@/components/BinaryControl";
 
 export default function HomePage() {
   const router = useRouter();
@@ -114,37 +113,69 @@ export default function HomePage() {
      {/* CONTROLS SECTION */}
 <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
   {canUseControl(role, "portail-principal") && (
-    /* 🧼 No more nested ControlCard wrapping it here */
-    <GateStatusButton />
+
+<BinaryControl
+  controlId="portail-principal"
+  entityId="input_boolean.fakegate"
+
+  title="Portail Principal"
+  description="Entrée principale"
+
+  icon={<ArrowRightLeft size={20} />}
+
+  onText="Ouvert"
+  offText="Fermé"
+
+  buttonText="Commander"
+/>
   )}
 
 {canUseControl(role, "porte-entrepot") && (
-  <WarehouseDoorButton />
+  <BinaryControl
+  controlId="porte-entrepot"
+  entityId="input_boolean.fakedoor"
+
+  title="Porte Entrepôt"
+  description="Accès principal"
+
+  icon={<Warehouse size={20} />}
+
+  onText="Ouverte"
+  offText="Fermée"
+
+  buttonText="Commander"
+/>
 )}
 
-        {canUseControl(role, "eclairage-exterieur") && (
-          <ControlCard
-            title="Éclairage Extérieur"
-            description="Gestion éclairage"
-            icon={<Lightbulb size={20} />}
-          >
-            <button className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition">
-              Activer
-            </button>
-          </ControlCard>
-        )}
+<BinaryControl
+    controlId="eclairage-site"
+    entityId="input_boolean.fakesitelights"
 
-        {canUseControl(role, "eclairage-salle-des-fetes") && (
-          <ControlCard
-            title="Salle des Fêtes"
-            description="Éclairage salle"
-            icon={<Lightbulb size={20} />}
-          >
-            <button className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition">
-              Activer
-            </button>
-          </ControlCard>
-        )}
+    title="Éclairage Site"
+    description="Éclairage extérieur"
+
+    icon={<Lightbulb size={20} />}
+
+    onText="Allumé"
+    offText="Éteint"
+
+    buttonText="Basculer"
+/>
+
+<BinaryControl
+  controlId="eclairage-salle"
+  entityId="input_boolean.fakesallelights"
+
+  title="Éclairage Salle"
+  description="Salle principale"
+
+  icon={<Lightbulb size={20} />}
+
+  onText="Allumé"
+  offText="Éteint"
+
+  buttonText="Basculer"
+/>
       </section>
 
       {/* ZONES */}

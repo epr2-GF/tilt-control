@@ -22,7 +22,21 @@ const DEVICE_MAP: Record<string, { entityId: string; domain: string }> = {
   "porte-entrepot": {
     entityId: "input_boolean.fakedoor",
     domain: "input_boolean"
-},
+  },
+  "eclairage-salle": {
+    entityId: "input_boolean.fakesallelights",
+    domain: "input_boolean",
+  },
+
+  "eclairage-site": {
+    entityId: "input_boolean.fakesitelights",
+    domain: "input_boolean",
+  },
+
+  "garage-porte-tilt": {
+  entityId: "cover.garage_porte_tilt",
+  domain: "cover"
+  },
 };
 
 /**

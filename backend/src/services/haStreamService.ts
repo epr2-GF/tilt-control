@@ -10,13 +10,17 @@ const WS_URL = HA_URL.replace(/^http/, "ws") + "/api/websocket";
 let frontendClients: any[] = [];
 
 // Current state cache
-const entityStateCache: Record<string, string> = {};
+const entityStateCache: Record<string, any> = {};
 
 // Whitelist of entities our web app actually cares about
 const ALLOWED_ENTITIES = [
   "input_boolean.fakegate",
   "input_boolean.fakedoor",
-
+  "input_boolean.fakesallelights",
+  "input_boolean.fakesitelights",
+  "light.outside_lights",
+  "warehouse.door",
+  "cover.garage_porte_tilt",
 ];
 
 export function getCurrentStates() {
@@ -54,15 +58,16 @@ export function registerStreamClient(res: any) {
   });
 }
 
-function broadcastToFrontend(entityId: string, newState: string) {
+function broadcastToFrontend(entityId: string, newState: any) {
 
   const data = JSON.stringify({
     entityId,
-    state: newState,
+    state: newState.state,
+    attributes: newState.attributes,
   });
 
   console.log(
-    `📡 Broadcasting ${entityId}:${newState} to ${frontendClients.length} clients`
+    `📡 Broadcasting ${entityId}:${newState.state} to ${frontendClients.length} clients`
   );
 
 
@@ -138,30 +143,44 @@ export function initHomeAssistantStream() {
       return;
     }
 
-    // -------------------------------------------------
-    // Initial snapshot
-    // -------------------------------------------------
-    if (
-      msg.id === 1 &&
-      msg.type === "result" &&
-      Array.isArray(msg.result)
-    ) {
-      console.log("📥 Loading initial Home Assistant state cache...");
+// -------------------------------------------------
+// Initial snapshot
+// -------------------------------------------------
+if (
+  msg.id === 1 &&
+  msg.type === "result" &&
+  Array.isArray(msg.result)
+) {
+  console.log("📥 Loading initial Home Assistant state cache...");
 
-      msg.result.forEach((entity: any) => {
-        if (ALLOWED_ENTITIES.includes(entity.entity_id)) {
-          entityStateCache[entity.entity_id] = entity.state;
+  msg.result.forEach((entity: any) => {
 
-          console.log(
-            `📥 ${entity.entity_id} = ${entity.state}`
-          );
-        }
-      });
+    if (ALLOWED_ENTITIES.includes(entity.entity_id)) {
 
-      console.log("✅ Home Assistant cache ready.");
+      entityStateCache[entity.entity_id] = {
+        state: entity.state,
+        attributes: entity.attributes,
+      };
 
-      return;
+      console.log(
+        `📥 ${entity.entity_id} = ${entity.state}`
+      );
+
+      if (entity.entity_id === "cover.garage_porte_tilt") {
+        console.log(
+          "🚪 Garage position:",
+          entity.attributes?.current_position
+        );
+      }
+
     }
+
+  });
+
+  console.log("✅ Home Assistant cache ready.");
+
+  return;
+}
 
     // -------------------------------------------------
     // Live state updates
@@ -182,13 +201,16 @@ export function initHomeAssistantStream() {
         newState &&
         ALLOWED_ENTITIES.includes(entityId)
       ) {
-        entityStateCache[entityId] = newState.state;
+        entityStateCache[entityId] = {
+  state: newState.state,
+  attributes: newState.attributes,
+};
 
         console.log(
           `🎯 Stream Broadcast -> ${entityId}: ${newState.state}`
         );
 
-        broadcastToFrontend(entityId, newState.state);
+        broadcastToFrontend(entityId, newState);
       }
 
       return;

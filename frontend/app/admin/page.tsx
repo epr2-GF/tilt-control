@@ -325,11 +325,6 @@ async function handleSave() {
     <div className="flex items-center gap-2 font-semibold text-white">
       {u.username}
 
-      {u.disabled && (
-        <span className="text-xs px-2 py-1 rounded-full bg-red-600">
-          DISABLED
-        </span>
-      )}
     </div>
 
     <div className="text-sm text-slate-400">
