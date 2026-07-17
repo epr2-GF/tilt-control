@@ -1,5 +1,5 @@
 export const SITE_CONFIG = {
-  latitude: 0,
-  longitude: 0,
-  radiusMeters: 500,
+  latitude: Number(process.env.SITE_LATITUDE),
+  longitude: Number(process.env.SITE_LONGITUDE),
+  radiusMeters: Number(process.env.SITE_RADIUS_METERS || 500),
 };

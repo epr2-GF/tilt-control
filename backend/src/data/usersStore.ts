@@ -9,6 +9,7 @@ export type User = {
   disabled?: boolean;
   accessStart?: string;
   accessEnd?: string;
+  remoteAccess?: boolean;
 };
 
 const filePath = path.join(__dirname, "users.json");

@@ -63,6 +63,7 @@ export function authMiddleware(
       id: currentUser.id,
       username: currentUser.username,
       role: currentUser.role,
+      remoteAccess: currentUser.remoteAccess,
     };
 
     next();

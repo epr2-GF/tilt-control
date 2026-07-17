@@ -71,9 +71,9 @@ router.post("/login", (req, res) => {
 });
 
 router.get("/me", authMiddleware, (req, res) => {
-  console.log("AUTH HEADER:", req.headers.authorization);
+
   
-    const users = readUsers();
+  const users = readUsers();
   const currentUser = (req as any).user;
 
   const user = users.find(u => u.id === currentUser.id);

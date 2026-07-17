@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { homeAssistantService } from "../services/homeAssistantService";
+import { authMiddleware } from "../middleware/authMiddleware";
+import { locationMiddleware } from "../middleware/locationMiddleware";
 import {
   registerStreamClient,
   getCurrentStates,
@@ -43,7 +45,11 @@ const DEVICE_MAP: Record<string, { entityId: string; domain: string }> = {
  * POST /devices/trigger
  * Triggers a device state change after checking permissions
  */
-router.post("/trigger", async (req, res) => {
+router.post(
+  "/trigger",
+  authMiddleware,
+  locationMiddleware,
+  async (req, res) => {
   try {
     const { controlId, action } = req.body; 
 
