@@ -143,7 +143,7 @@ export default function HomePage() {
   icon={<Warehouse size={20} />}
 
   onText="Ouverte"
-  offText="Fermée"
+  offText="Fermé"
 
   buttonText="Commander"
 />

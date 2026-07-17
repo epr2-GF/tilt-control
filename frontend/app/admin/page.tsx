@@ -276,7 +276,7 @@ async function handleSave() {
   key={u.id}
   className={`
     p-4 rounded-xl border transition-all duration-200
-    flex justify-between items-center
+    flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4
     ${
       u.disabled
         ? "bg-red-950/20 border-red-800"
@@ -342,7 +342,7 @@ async function handleSave() {
   </div>
 
   {/* RIGHT ACTIONS */}
-  <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+  <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
     <DeployButton user={u} />
     <button
       onClick={() => setEditingUser({ ...u })}
@@ -373,6 +373,12 @@ className={`px-3 py-1 rounded-lg transition ${
   }`}
 >
   Supprimer
+</button>
+<button
+  onClick={() => console.log("toggle remote", u.id)}
+  className="px-3 py-1 rounded-lg bg-orange-600 hover:bg-orange-500 transition"
+>
+  Hors Site
 </button>
   </div>
 </div>
