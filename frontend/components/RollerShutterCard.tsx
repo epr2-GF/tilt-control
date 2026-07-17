@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowUpDown, StopCircle } from "lucide-react";
-
+import { useToast } from "@/context/ToastContext";
 import ControlCard from "@/components/ControlCard";
 import { useDevices } from "@/context/DeviceContext";
 import { apiFetch } from "@/lib/api";
@@ -11,6 +11,7 @@ import { apiFetch } from "@/lib/api";
 export default function RollerShutterCard() {
 
   const { states } = useDevices();
+  const { showToast } = useToast();
 
   const [pending, setPending] = useState(false);
 
@@ -35,25 +36,35 @@ export default function RollerShutterCard() {
 
     setPending(true);
 
-    try {
+try {
 
-await apiFetch("/devices/trigger", {
-  method:"POST",
-  body: JSON.stringify({
-    controlId:"garage-porte-tilt",
-    action:service,
-  }),
-});
+  await apiFetch("/devices/trigger", {
+    method:"POST",
+    body: JSON.stringify({
+      controlId:"garage-porte-tilt",
+      action:service,
+    }),
+  });
+
+  showToast(
+    "Commande envoyée",
+    "success"
+  );
 
 
-    } catch(err) {
+} catch(err: any) {
 
-      console.error(
-        "Roller shutter command failed",
-        err
-      );
+  console.error(
+    "Roller shutter command failed",
+    err
+  );
 
-    }
+  showToast(
+    err.message || "Erreur commande porte",
+    "error"
+  );
+
+}
     finally {
 
       setPending(false);

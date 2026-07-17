@@ -43,7 +43,7 @@ export async function apiFetch(
 /* -----------------------------
       AUTH HANDLING (FIXED origin loop check)
   ------------------------------ */
-if (res.status === 401 || res.status === 403) {
+if (res.status === 401)  {
   const error = await res.json().catch(() => ({}));
 
   const message = error.message || "Session non autorisée ou expirée";

@@ -4,6 +4,7 @@ import { useState } from "react";
 import ControlCard from "@/components/ControlCard";
 import { useDevices } from "@/context/DeviceContext";
 import { triggerDeviceControl } from "@/services/deviceService";
+import { useToast } from "@/context/ToastContext";
 
 type Props = {
   controlId: string;
@@ -40,20 +41,37 @@ export default function BinaryControl({
 const statusDevice = states[statusEntity];
 
 const isOn = statusDevice?.state === "on";
+const { showToast } = useToast();
 
-  const handleToggle = async () => {
-    if (isPending) return;
+const handleToggle = async () => {
+  if (isPending) return;
 
-    setIsPending(true);
+  setIsPending(true);
 
-    try {
-      await triggerDeviceControl(controlId, "toggle");
-    } catch (err) {
-      console.error("Failed to control device:", err);
-    } finally {
-      setIsPending(false);
-    }
-  };
+  try {
+    await triggerDeviceControl(controlId, "toggle");
+
+    showToast(
+      "Commande envoyée",
+      "success"
+    );
+
+  } catch (err: any) {
+
+    console.error(
+      "Failed to control device:",
+      err
+    );
+
+    showToast(
+      err.message || "Erreur lors de la commande",
+      "error"
+    );
+
+  } finally {
+    setIsPending(false);
+  }
+};
 
   return (
     <ControlCard

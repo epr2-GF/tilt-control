@@ -130,6 +130,45 @@ async function handleDelete(id: string) {
 }
 
   // -----------------------------
+  // TOGGLE REMOTE ACCESS
+  // -----------------------------
+  async function handleRemoteAccessToggle(user: any) {
+
+  try {
+
+    const updated = {
+      ...user,
+      remoteAccess: !user.remoteAccess,
+    };
+
+    await updateUser(
+      user.id,
+      updated
+    );
+
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === user.id
+          ? updated
+          : u
+      )
+    );
+
+  } catch (err) {
+
+    console.error(
+      "Remote access update failed",
+      err
+    );
+
+  }
+
+}
+
+
+
+
+  // -----------------------------
   // TOGGLE ENABLE/DISABLE
   // -----------------------------
 async function  handleToggleDisabled(id: string) {
@@ -375,10 +414,16 @@ className={`px-3 py-1 rounded-lg transition ${
   Supprimer
 </button>
 <button
-  onClick={() => console.log("toggle remote", u.id)}
-  className="px-3 py-1 rounded-lg bg-orange-600 hover:bg-orange-500 transition"
+  onClick={() => handleRemoteAccessToggle(u)}
+  className={`px-3 py-1 rounded-lg transition ${
+    u.remoteAccess
+      ? "bg-orange-600 hover:bg-orange-500"
+      : "bg-slate-600 hover:bg-slate-500"
+  }`}
 >
-  Hors Site
+  {u.remoteAccess
+    ? "Distance"
+    : "Local"}
 </button>
   </div>
 </div>

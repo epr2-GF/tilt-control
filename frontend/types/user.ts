@@ -14,6 +14,7 @@ export type User = {
 
   accessStart?: string; // "08:00"
   accessEnd?: string;   // "18:00"
+  remoteAccess?: boolean;
 
 
 };
