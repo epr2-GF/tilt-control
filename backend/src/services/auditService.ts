@@ -3,7 +3,7 @@ import path from "path";
 
 
 const LOG_FILE =
-  path.join(__dirname,"../data/auditLog.json");
+  path.join(__dirname,"../data/auditlog.json");
 
 
 interface AuditEntry {
