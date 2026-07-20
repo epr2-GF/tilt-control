@@ -18,10 +18,7 @@ const DEVICE_MAP: Record<string, { entityId: string; domain: string }> = {
     entityId: "input_boolean.fakegate", 
     domain: "input_boolean" 
   },
-  "eclairage-exterieur": { 
-    entityId: "light.outside_lights", 
-    domain: "light" 
-  },
+
   "porte-entrepot": {
     entityId: "input_boolean.fakedoor",
     domain: "input_boolean"
@@ -31,7 +28,7 @@ const DEVICE_MAP: Record<string, { entityId: string; domain: string }> = {
     domain: "input_boolean",
   },
 
-  "eclairage-exterior": {
+  "eclairage-exterieur": {
     entityId: "input_boolean.fakesitelights",
     domain: "input_boolean",
   },
