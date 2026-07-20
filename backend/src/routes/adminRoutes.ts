@@ -7,7 +7,7 @@ const router = express.Router();
 
 
 const LOG_FILE =
-  path.join(__dirname, "../data/auditlog.json");
+  path.join(__dirname, "../data/auditLog.json");
 
 
 // GET /admin/audit

@@ -17,6 +17,7 @@ export default function AuditPage() {
 
 
   useEffect(() => {
+  if (!user) return;
 
     if (!user) {
       router.push("/login");
