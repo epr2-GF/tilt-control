@@ -1,4 +1,5 @@
 import WebSocket from "ws";
+import { DEVICE_ENTITIES } from "../config/deviceEntities";
 
 const HA_URL = process.env.HA_URL || "";
 const HA_TOKEN = process.env.HA_TOKEN || "";
@@ -12,15 +13,28 @@ let frontendClients = new Set<any>();
 // Current state cache
 const entityStateCache: Record<string, any> = {};
 
+let ws: WebSocket | null = null;
+
+let reconnectTimer: NodeJS.Timeout | null = null;
+
+let healthTimer: NodeJS.Timeout | null = null;
+
+let lastMessageTime = Date.now();
+
+let reconnectAttempts = 0;
+
+let connected = false;
+
 // Whitelist of entities our web app actually cares about
 const SSE_ENTITIES = [
-  "input_boolean.fakegate",
-  "input_boolean.fakedoor",
-  "input_boolean.fakesallelights",
-  "input_boolean.fakesitelights",
-  "light.outside_lights",
-  "warehouse.door",
-  "cover.garage_porte_tilt",
+  ...new Set(
+    Object.values(DEVICE_ENTITIES)
+      .flatMap(device => [
+        device.command,
+        device.status,
+      ])
+      .filter(Boolean)
+  ),
 ];
 
 export function getCurrentStates() {
@@ -87,24 +101,53 @@ function broadcastToFrontend(entityId: string, newState: any) {
 }
 
 export function initHomeAssistantStream() {
+
   if (!HA_URL || !HA_TOKEN) return;
 
   console.log("🔌 Connecting to Home Assistant WebSocket Stream...");
 
-  const ws = new WebSocket(WS_URL);
+  // Close any existing socket first
+if (ws) {
 
-  ws.on("open", () => {
-    console.log("🟩 HA WebSocket Transport channel open.");
-  });
+    connected = false;
+
+    console.log("♻️ Closing previous HA websocket");
+
+    ws.removeAllListeners();
+
+    ws.terminate();
+
+}
+
+if (healthTimer) {
+  clearInterval(healthTimer);
+  healthTimer = null;
+}
+
+if (reconnectTimer) {
+  clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+}
+
+  ws = new WebSocket(WS_URL);
+
+ws.on("open", () => {
+
+  connected = true;
+  reconnectAttempts = 0;
+
+  console.log("🟩 HA websocket connected");
+});
 
   ws.on("message", (rawMessage: string) => {
+    lastMessageTime = Date.now();
     const msg = JSON.parse(rawMessage);
 
     // -------------------------------------------------
     // Home Assistant requests authentication
     // -------------------------------------------------
     if (msg.type === "auth_required") {
-      ws.send(
+      ws!.send(
         JSON.stringify({
           type: "auth",
           access_token: HA_TOKEN,
@@ -116,11 +159,28 @@ export function initHomeAssistantStream() {
     // -------------------------------------------------
     // Authentication successful
     // -------------------------------------------------
-    if (msg.type === "auth_ok") {
-      console.log("🔒 HA WebSocket authenticated successfully!");
+if (msg.type === "auth_ok") {
 
+  if (healthTimer) {
+    clearInterval(healthTimer);
+    healthTimer = null;
+  }
+
+  healthTimer = setInterval(() => {
+
+    const age = Date.now() - lastMessageTime;
+
+    if (age > 120000) {
+
+      console.warn(`💀 No HA messages for ${Math.round(age / 1000)} seconds. Restarting websocket...`);
+
+      ws?.terminate();
+
+    }
+
+  }, 30000);
       // Request current state of every entity
-      ws.send(
+      ws!.send(
         JSON.stringify({
           id: 1,
           type: "get_states",
@@ -128,7 +188,7 @@ export function initHomeAssistantStream() {
       );
 
       // Subscribe to future updates
-      ws.send(
+      ws!.send(
         JSON.stringify({
           id: 2,
           type: "subscribe_events",
@@ -213,15 +273,43 @@ if (
     }
   });
 
-  ws.on("close", () => {
-    console.warn(
-      "⚠️ HA WebSocket disconnected. Reconnecting in 5 seconds..."
+ws.on("close", () => {
+
+  connected = false;
+
+  console.warn("⚠️ HA websocket closed");
+
+  if (healthTimer) {
+    clearInterval(healthTimer);
+    healthTimer = null;
+  }
+
+  if (!reconnectTimer) {
+
+    reconnectAttempts++;
+
+    const delay =
+      Math.min(
+        reconnectAttempts * 5000,
+        60000
+      );
+
+    console.log(
+      `🔄 Reconnecting in ${delay / 1000}s`
     );
 
-    setTimeout(initHomeAssistantStream, 5000);
-  });
+    reconnectTimer = setTimeout(() => {
 
-  ws.on("error", (err) => {
-    console.error("❌ HA WebSocket Error:", err.message);
-  });
+      reconnectTimer = null;
+
+      initHomeAssistantStream();
+
+    }, delay);
+
+  }
+
+});
+ws.on("error", (err) => {
+  console.error("❌ HA websocket error:", err.message);
+});
 }
