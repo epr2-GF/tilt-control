@@ -26,12 +26,12 @@ const DEVICE_MAP: Record<string, { entityId: string; domain: string }> = {
     entityId: "input_boolean.fakedoor",
     domain: "input_boolean"
   },
-  "eclairage-salle": {
+  "eclairage-salle-des-fetes": {
     entityId: "input_boolean.fakesallelights",
     domain: "input_boolean",
   },
 
-  "eclairage-site": {
+  "eclairage-exterior": {
     entityId: "input_boolean.fakesitelights",
     domain: "input_boolean",
   },
