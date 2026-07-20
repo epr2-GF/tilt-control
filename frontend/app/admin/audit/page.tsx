@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
-
+import { apiFetch } from "@/lib/api";
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
 
@@ -29,27 +29,21 @@ export default function AuditPage() {
     }
 
 
-    async function loadLogs(){
+async function loadLogs(){
 
-      const token =
-        localStorage.getItem("smart-site-token");
+  try {
 
+    const data = await apiFetch("/admin/audit");
 
-      const res = await fetch(
-        "http://localhost:4000/admin/audit",
-        {
-          headers:{
-            Authorization:`Bearer ${token}`
-          }
-        }
-      );
+    setLogs(data);
 
+  } catch (error) {
 
-      const data = await res.json();
+    console.error("Failed to load audit logs", error);
 
-      setLogs(data);
+  }
 
-    }
+}
 
 
     loadLogs();
