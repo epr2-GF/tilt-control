@@ -18,24 +18,22 @@ export function locationMiddleware(
   });
 
   // Admins always allowed
-if (user?.role === "admin") {
+  if (user?.role === "admin") {
+    user.locationAllowed = true;
 
-  user.locationAllowed = true;
+    console.log("✅ Admin bypass");
 
-  console.log("✅ Admin bypass");
-
-  return next();
-}
+    return next();
+  }
 
   // Users with remote access enabled
-if (user?.remoteAccess) {
+  if (user?.remoteAccess) {
+    user.locationAllowed = true;
 
-  user.locationAllowed = true;
+    console.log("🌍 Remote access enabled");
 
-  console.log("🌍 Remote access enabled");
-
-  return next();
-}
+    return next();
+  }
 
   // Missing GPS
   if (latitude == null || longitude == null) {
@@ -47,19 +45,34 @@ if (user?.remoteAccess) {
   // Calculate distance
   const result = isWithinSiteRadius(latitude, longitude);
 
-  console.log(`📏 Distance: ${result.distance.toFixed(1)} m`);
+  console.log("🏠 Site configuration:", {
+    latitude: process.env.SITE_LATITUDE,
+    longitude: process.env.SITE_LONGITUDE,
+    radius: process.env.SITE_RADIUS_METERS,
+  });
 
-if (result.inside) {
+  console.log("📱 User location:", {
+    latitude,
+    longitude,
+  });
 
-  user.locationAllowed = true;
+  console.log("📏 Distance:", {
+    metres: result.distance.toFixed(1),
+    inside: result.inside,
+  });
 
-  console.log("✅ User inside permitted area");
+  if (result.inside) {
+    user.locationAllowed = true;
 
-  return next();
-}
+    console.log("✅ User inside permitted area");
+
+    return next();
+  }
+
   user.locationAllowed = false;
+
   console.log("❌ User outside permitted area");
-  
+
   return res.status(403).json({
     message: "En dehors de la zone autorisée",
   });

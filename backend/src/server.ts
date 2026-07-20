@@ -9,6 +9,7 @@ import deviceRoutes from "./routes/deviceRoutes";
 import { authMiddleware } from "./middleware/authMiddleware";
 import { initHomeAssistantStream } from "./services/haStreamService"; 
 import locationRoutes from "./routes/location";
+import adminRoutes from "./routes/adminRoutes";
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/devices", authMiddleware, deviceRoutes); // Protect ALL device routes with your JWT middleware
 app.use("/api/location", locationRoutes);
+app.use("/admin", adminRoutes);
 
 // ✅ TEST ROUTE
 app.get("/api/test-protected", authMiddleware, (req, res) => {

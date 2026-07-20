@@ -142,6 +142,12 @@ const zones = allZones.filter((zone) =>
               >
                 Cameras
               </button>
+              <button
+  onClick={() => router.push("/admin/audit")}
+  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition"
+>
+  Journal
+</button>
             </div>
           </ControlCard>
         </div>
