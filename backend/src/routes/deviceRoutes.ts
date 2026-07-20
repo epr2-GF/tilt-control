@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { homeAssistantService } from "../services/homeAssistantService";
 import { authMiddleware } from "../middleware/authMiddleware";
+import { timeAccessMiddleware } from "../middleware/timeAccessMiddleware";
 import { locationMiddleware } from "../middleware/locationMiddleware";
 import {
   registerStreamClient,
@@ -48,8 +49,26 @@ const DEVICE_MAP: Record<string, { entityId: string; domain: string }> = {
 router.post(
   "/trigger",
   authMiddleware,
+  timeAccessMiddleware,
   locationMiddleware,
   async (req, res) => {
+    const user = (req as any).user;
+
+console.log("🔐 DEVICE PERMISSION CHECK", {
+  user:user.username,
+  time:user.timeAccessAllowed,
+  location:user.locationAllowed
+});
+
+
+if (user.timeAccessAllowed === false) {
+
+  return res.status(403).json({
+    code:"OUTSIDE_TIME_WINDOW",
+    message:"En dehors des horaires autorisés"
+  });
+
+}
   try {
     const { controlId, action } = req.body; 
 

@@ -13,7 +13,6 @@ export function getMe(req: Request, res: Response) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // Optional: refresh full user from storage (recommended)
     const users = readUsers();
     const fullUser = users.find(u => u.id === user.id);
 
@@ -29,8 +28,14 @@ export function getMe(req: Request, res: Response) {
       username: fullUser.username,
       role: fullUser.role,
       disabled: fullUser.disabled,
-      zones: permissions?.zones || [],
-      controls: permissions?.controls || [],
+      accessStart: fullUser.accessStart,
+      accessEnd: fullUser.accessEnd,
+      remoteAccess: fullUser.remoteAccess,
+
+      permissions: {
+        zones: permissions?.zones || [],
+        controls: permissions?.controls || [],
+      },
     });
 
   } catch (err) {

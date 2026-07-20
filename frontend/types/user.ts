@@ -12,9 +12,12 @@ export type User = {
   role: Role;
   disabled: boolean;
 
-  accessStart?: string; // "08:00"
-  accessEnd?: string;   // "18:00"
+  accessStart?: string;
+  accessEnd?: string;
   remoteAccess?: boolean;
 
-
+  permissions?: {
+    zones: string[];
+    controls: string[];
+  };
 };

@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { canAccessZone } from "@/lib/permissions";
 
 import { Home } from "lucide-react";
 
@@ -12,25 +11,31 @@ import ZoneHeader from "@/components/ZoneHeader";
 
 export default function LogementDuTiltPage() {
 
-    const router = useRouter();
-    const { user } = useAuth();
+  const router = useRouter();
+  const { user } = useAuth();
 
-useEffect(() => {
-  if (!user) {
-    router.push("/login");
-    return;
-  }
+  const hasAccess =
+    user?.permissions?.zones.includes("logement-du-tilt") ?? false;
 
-  if (!canAccessZone(user.role, "logement-du-tilt")) {
-    router.push("/");
-  }
-}, [user, router]);
 
-if (!user) return null;
+  useEffect(() => {
 
-if (!canAccessZone(user.role, "logement-du-tilt")) {
-  return null;
-}
+    if (user === null) {
+      router.push("/login");
+      return;
+    }
+
+    if (user && !hasAccess) {
+      router.push("/");
+    }
+
+  }, [user, hasAccess, router]);
+
+
+  if (!user) return null;
+
+  if (!hasAccess) return null;
+
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-6">

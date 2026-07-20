@@ -18,16 +18,24 @@ export function locationMiddleware(
   });
 
   // Admins always allowed
-  if (user?.role === "admin") {
-    console.log("✅ Admin bypass");
-    return next();
-  }
+if (user?.role === "admin") {
+
+  user.locationAllowed = true;
+
+  console.log("✅ Admin bypass");
+
+  return next();
+}
 
   // Users with remote access enabled
-  if (user?.remoteAccess) {
-    console.log("🌍 Remote access enabled");
-    return next();
-  }
+if (user?.remoteAccess) {
+
+  user.locationAllowed = true;
+
+  console.log("🌍 Remote access enabled");
+
+  return next();
+}
 
   // Missing GPS
   if (latitude == null || longitude == null) {
@@ -41,13 +49,17 @@ export function locationMiddleware(
 
   console.log(`📏 Distance: ${result.distance.toFixed(1)} m`);
 
-  if (result.inside) {
-    console.log("✅ User inside permitted area");
-    return next();
-  }
+if (result.inside) {
 
+  user.locationAllowed = true;
+
+  console.log("✅ User inside permitted area");
+
+  return next();
+}
+  user.locationAllowed = false;
   console.log("❌ User outside permitted area");
-
+  
   return res.status(403).json({
     message: "En dehors de la zone autorisée",
   });

@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { canAccessZone } from "@/lib/permissions";
 
 import { UtensilsCrossed } from "lucide-react";
 
@@ -11,42 +10,41 @@ import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
 
 export default function RestaurantPage() {
-    const router = useRouter();
-    const { user } = useAuth();
 
-useEffect(() => {
-  if (!user) return;
+  const router = useRouter();
+  const { user } = useAuth();
 
-  if (!canAccessZone(user.role, "restaurant")) {
-    router.push("/");
-  }
-}, [user, router]);
+  const hasAccess =
+    user?.permissions?.zones.includes("restaurant") ?? false;
 
-useEffect(() => {
-  if (!user) {
-    router.push("/login");
-    return;
-  }
 
-  if (!canAccessZone(user.role, "restaurant")) {
-    router.push("/");
-  }
-}, [user, router]);
+  useEffect(() => {
 
-if (!user) return null;
+    if (user === null) {
+      router.push("/login");
+      return;
+    }
 
-if (!canAccessZone(user.role, "restaurant")) {
-  return null;
-}
+    if (user && !hasAccess) {
+      router.push("/");
+    }
+
+  }, [user, hasAccess, router]);
+
+
+  if (!user) return null;
+
+  if (!hasAccess) return null;
+
 
   return (
 
-    
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-6">
 
       <div className="mb-6">
         <BackButton />
       </div>
+
 
       <ZoneHeader
         title="Restaurant"
@@ -54,6 +52,8 @@ if (!canAccessZone(user.role, "restaurant")) {
         icon={<UtensilsCrossed size={28} />}
       />
 
+
     </main>
+
   );
 }

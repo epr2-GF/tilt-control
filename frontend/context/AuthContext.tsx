@@ -7,19 +7,11 @@ import {
   useState,
 } from "react";
 import { getMe } from "@/lib/api";
-import { Role } from "@/types/user";
+import { User } from "@/types/user";;
 
 /* -----------------------------
    TYPES
 ------------------------------ */
-type User = {
-  id: string;
-  username: string;
-  role: Role;
-  disabled?: boolean;
-  zones?: string[];
-  controls?: string[];
-};
 
 type AuthContextType = {
   user: User | null | undefined; // undefined = loading, null = unauthenticated, User = logged in
@@ -82,13 +74,16 @@ const refreshUser = async () => {
 
     setUser(currentUser => {
 
-      if (
-        currentUser &&
-        currentUser.id === me.id &&
-        currentUser.username === me.username &&
-        currentUser.role === me.role &&
-        currentUser.disabled === me.disabled
-      ) {
+if (
+  currentUser &&
+  currentUser.id === me.id &&
+  currentUser.username === me.username &&
+  currentUser.role === me.role &&
+  currentUser.disabled === me.disabled &&
+  currentUser.accessStart === me.accessStart &&
+  currentUser.accessEnd === me.accessEnd &&
+  currentUser.remoteAccess === me.remoteAccess
+) {
         return currentUser;
       }
 

@@ -32,31 +32,11 @@ export function authMiddleware(
     const currentUser = users.find((u) => u.id === decoded.id);
 
     if (!currentUser) {
-      return res.status(401).json({ message: "User not found" });
+      return res.status(401).json({ message: "Utilisateur introuvable" });
     }
 
     if (currentUser.disabled) {
-      return res.status(403).json({ message: "Account disabled" });
-    }
-
-    // 🕒 TIME CHECK (NEW)
-    if (currentUser.accessStart && currentUser.accessEnd) {
-      const now = new Date();
-
-      const [sh, sm] = currentUser.accessStart.split(":").map(Number);
-      const [eh, em] = currentUser.accessEnd.split(":").map(Number);
-
-      const start = new Date();
-      start.setHours(sh, sm, 0, 0);
-
-      const end = new Date();
-      end.setHours(eh, em, 59, 999);
-
-      if (now < start || now > end) {
-        return res.status(403).json({
-          message: "En dehors des horaires autorisés",
-        });
-      }
+      return res.status(403).json({ message: "Compte désactivé" });
     }
 
     (req as any).user = {
@@ -64,6 +44,8 @@ export function authMiddleware(
       username: currentUser.username,
       role: currentUser.role,
       remoteAccess: currentUser.remoteAccess,
+      accessStart: currentUser.accessStart,
+      accessEnd: currentUser.accessEnd,
     };
 
     next();

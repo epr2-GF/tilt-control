@@ -3,8 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { canAccessZone } from "@/lib/permissions";
-
 import { PartyPopper } from "lucide-react";
 
 import BackButton from "@/components/BackButton";
@@ -21,14 +19,14 @@ useEffect(() => {
     return;
   }
 
-  if (!canAccessZone(user.role, "salle-des-fetes")) {
+  if (user.permissions?.zones.includes("salle-des-fetes")) {
     router.push("/");
   }
 }, [user, router]);
 
 if (!user) return null;
 
-if (!canAccessZone(user.role, "salle-des-fetes")) {
+if (user.permissions?.zones.includes("salle-des-fetes")) {
   return null;
 }
 

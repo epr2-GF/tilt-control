@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { readUsers } from "../data/usersStore";
 import { JWT_SECRET } from "../config/jwt";
 import { authMiddleware } from "../middleware/authMiddleware";
+import { ROLE_PERMISSIONS } from "../config/rolePermissions";
 
 const router = express.Router();
 
@@ -30,26 +31,6 @@ router.post("/login", (req, res) => {
     });
   }
 
-  // 🕒 TIME CHECK (ONLY HERE)
-  if (user.accessStart && user.accessEnd) {
-    const now = new Date();
-
-    const [sh, sm] = user.accessStart.split(":").map(Number);
-    const [eh, em] = user.accessEnd.split(":").map(Number);
-
-    const start = new Date();
-    start.setHours(sh, sm, 0, 0);
-
-    const end = new Date();
-    end.setHours(eh, em, 59, 999);
-
-    if (now < start || now > end) {
-      return res.status(403).json({
-        message: "En dehors des horaires autorisés",
-      });
-    }
-  }
-
   const token = jwt.sign(
     {
       id: user.id,
@@ -72,14 +53,15 @@ router.post("/login", (req, res) => {
 
 router.get("/me", authMiddleware, (req, res) => {
 
-  
   const users = readUsers();
   const currentUser = (req as any).user;
 
   const user = users.find(u => u.id === currentUser.id);
 
   if (!user) {
-    return res.status(404).json({ message: "User not found" });
+    return res.status(404).json({ 
+      message: "Utilisateur introuvable" 
+    });
   }
 
   return res.json({
@@ -88,7 +70,11 @@ router.get("/me", authMiddleware, (req, res) => {
     role: user.role,
     disabled: user.disabled,
     accessStart: user.accessStart,
-    accessEnd: user.accessEnd
+    accessEnd: user.accessEnd,
+    remoteAccess: user.remoteAccess,
+
+    permissions:
+      ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS]
   });
 });
 
