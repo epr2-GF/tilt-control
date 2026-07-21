@@ -19,14 +19,16 @@ useEffect(() => {
     return;
   }
 
-  if (user.permissions?.zones.includes("salle-des-fetes")) {
+  // Redirect ONLY if they do NOT have permission
+  if (!user.permissions?.zones.includes("salle-des-fetes")) {
     router.push("/");
   }
 }, [user, router]);
 
 if (!user) return null;
 
-if (user.permissions?.zones.includes("salle-des-fetes")) {
+// Don't render while redirecting unauthorized users
+if (!user.permissions?.zones.includes("salle-des-fetes")) {
   return null;
 }
 

@@ -69,7 +69,7 @@ async function loadLogs(){
 
 
       <ZoneHeader
-        title="Audit Log"
+        title="Journal"
         subtitle="Historique sécurité système"
         icon={<ShieldCheck size={28}/>}
       />

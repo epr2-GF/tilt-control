@@ -47,7 +47,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/devices", authMiddleware, deviceRoutes); // Protect ALL device routes with your JWT middleware
 app.use("/api/location", locationRoutes);
-app.use("/admin", adminRoutes);
+app.use("/api/admin", adminRoutes);
 
 // ✅ TEST ROUTE
 app.get("/api/test-protected", authMiddleware, (req, res) => {
