@@ -24,10 +24,13 @@ export default function AuditPage() {
       return;
     }
 
-    if (user.role !== "admin") {
-      router.push("/");
-      return;
-    }
+if (
+  user.role !== "admin" &&
+  user.role !== "superadmin"
+) {
+  router.push("/");
+  return;
+}
 
 
 async function loadLogs(){

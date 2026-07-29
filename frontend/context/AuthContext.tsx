@@ -53,9 +53,9 @@ const loginUser = async (authToken:string)=>{
 
   try {
 
-    const me = await getMe();
+const me = await getMe();
 
-    setUser(me);
+setUser(me);
 
   } catch(err){
 

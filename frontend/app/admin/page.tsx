@@ -45,18 +45,22 @@ export default function AdminPage() {
 // -----------------------------
   // AUTH GUARD
   // -----------------------------
-  useEffect(() => {
-    // 1. If state machine finishes and user is definitely not logged in
-    if (user === null) {
-      router.push("/login");
-      return;
-    }
+useEffect(() => {
 
-    // 2. If user is logged in, but lacks the admin role
-    if (user && user.role !== "admin") {
-      router.push("/");
-    }
-  }, [user, router]);
+ if(user === null){
+   router.push("/login");
+   return;
+ }
+
+ if(
+   user &&
+   user.role !== "admin" &&
+   user.role !== "superadmin"
+ ){
+   router.push("/");
+ }
+
+},[user]);
   // -----------------------------
   // LOAD USERS
   // -----------------------------

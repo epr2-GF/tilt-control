@@ -10,11 +10,12 @@ export function superAdminOnly(
  const user=(req as any).user;
 
 
- if(
+if(
    !user ||
-   user.id !== 0 ||
+   Number(user.id) !== 0 ||
    user.role !== "superadmin"
- ){
+)
+ {
 
    return res.status(403).json({
      message:"Superadmin required"
