@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { homeAssistantService } from "../services/homeAssistantService";
-import { authMiddleware } from "../middleware/authMiddleware";
 import { timeAccessMiddleware } from "../middleware/timeAccessMiddleware";
 import { locationMiddleware } from "../middleware/locationMiddleware";
 import {
   registerStreamClient,
   getCurrentStates,
+  refreshHAStates,
 } from "../services/haStreamService";
 import {
   getDevices,
@@ -101,8 +101,31 @@ const device = {
  * GET /devices/state
  * Returns the latest cached Home Assistant states
  */
-router.get("/state", (req, res) => {
-  res.json(getCurrentStates());
+router.get("/state", async (req, res) => {
+
+  try {
+
+    // Ask Home Assistant for fresh states
+    refreshHAStates();
+
+    // Small delay to allow websocket response
+    await new Promise(resolve =>
+      setTimeout(resolve, 500)
+    );
+
+    res.json(getCurrentStates());
+
+  } catch(error) {
+
+    console.error(
+      "Failed refreshing HA states",
+      error
+    );
+
+    res.json(getCurrentStates());
+
+  }
+
 });
 
 

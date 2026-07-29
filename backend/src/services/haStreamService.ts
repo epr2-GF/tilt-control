@@ -35,15 +35,42 @@ export function reloadDeviceEntities() {
 
   console.log(
     "♻️ Reloaded SSE whitelist:",
-    SSE_ENTITIES
+    JSON.stringify(SSE_ENTITIES, null, 2)
   );
 
 }
+
 
 export function getCurrentStates() {
   return entityStateCache;
 }
 
+export function refreshHAStates() {
+
+  if (!ws || !connected) {
+
+    console.warn(
+      "⚠️ Cannot refresh HA states - websocket offline"
+    );
+
+    return;
+
+  }
+
+
+  ws.send(
+    JSON.stringify({
+      id: Date.now(),
+      type: "get_states",
+    })
+  );
+
+
+  console.log(
+    "🔄 Requested fresh HA states"
+  );
+
+}
 export function registerStreamClient(res: any) {
 
   frontendClients.add(res);
