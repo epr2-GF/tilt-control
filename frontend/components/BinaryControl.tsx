@@ -6,6 +6,7 @@ import { useDevices } from "@/context/DeviceContext";
 import { triggerDeviceControl } from "@/services/deviceService";
 import { useToast } from "@/context/ToastContext";
 
+
 type Props = {
   controlId: string;
 
@@ -34,6 +35,7 @@ export default function BinaryControl({
   offText,
   buttonText = "Commander",
 }: Props) {
+
   const { states } = useDevices();
 
   const [isPending, setIsPending] = useState(false);
@@ -44,12 +46,17 @@ const isOn = statusDevice?.state === "on";
 const { showToast } = useToast();
 
 const handleToggle = async () => {
+
   if (isPending) return;
 
   setIsPending(true);
 
   try {
-    await triggerDeviceControl(controlId, "toggle");
+
+    await triggerDeviceControl(
+      controlId,
+      "toggle"
+    );
 
     showToast(
       "Commande envoyée",
@@ -69,9 +76,12 @@ const handleToggle = async () => {
     );
 
   } finally {
+
     setIsPending(false);
+
   }
 };
+
 
   return (
     <ControlCard

@@ -6,147 +6,260 @@ import {
   useEffect,
   useState,
 } from "react";
-import { getMe } from "@/lib/api";
-import { User } from "@/types/user";;
 
-/* -----------------------------
-   TYPES
------------------------------- */
+import { getMe, apiFetch } from "@/lib/api";
+
+import { User } from "@/types/user";
+
 
 type AuthContextType = {
-  user: User | null | undefined; // undefined = loading, null = unauthenticated, User = logged in
+  user: User | null | undefined;
   token: string | null;
   loginUser: (token: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
 
-/* -----------------------------
-   CONTEXT
------------------------------- */
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
-/* -----------------------------
-   PROVIDER
------------------------------- */
+
 export function AuthProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Start as undefined to mark the initial boot-up/loading phase
-  const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [token, setToken] = useState<string | null>(null);
 
-  /* -----------------------------
-     LOGIN
-  ------------------------------ */
-const loginUser = async (authToken: string) => {
+
+  const [user, setUser] =
+    useState<User | null | undefined>(undefined);
+
+  const [token, setToken] =
+    useState<string | null>(null);
+
+
+
+  /*
+  LOGIN
+  */
+const loginUser = async (authToken:string)=>{
+
+  localStorage.setItem(
+    "smart-site-token",
+    authToken
+  );
+
   setToken(authToken);
-  localStorage.setItem("smart-site-token", authToken);
 
   try {
+
     const me = await getMe();
+
     setUser(me);
-  } catch (err) {
-    console.error("Login verification failed:", err);
 
-    // ❌ DO NOT logout or redirect
+  } catch(err){
+
+    console.error(
+      "Login verification failed:",
+      err
+    );
+
     setUser(null);
+
   }
+
 };
 
-  /* -----------------------------
-     LOGOUT
-  ------------------------------ */
-const logout = () => {
-  setUser(null);
-  setToken(null);
-  localStorage.removeItem("smart-site-token");
-};
 
-  /* -----------------------------
-     REFRESH USER
-  ------------------------------ */
-const refreshUser = async () => {
-  try {
-    const me = await getMe();
 
-    setUser(currentUser => {
+  /*
+  LOGOUT
+  */
+  const logout = ()=>{
 
-if (
-  currentUser &&
-  currentUser.id === me.id &&
-  currentUser.username === me.username &&
-  currentUser.role === me.role &&
-  currentUser.disabled === me.disabled &&
-  currentUser.accessStart === me.accessStart &&
-  currentUser.accessEnd === me.accessEnd &&
-  currentUser.remoteAccess === me.remoteAccess
-) {
-        return currentUser;
-      }
+    localStorage.removeItem(
+      "smart-site-token"
+    );
 
-      return me;
-    });
+    setToken(null);
 
-  } catch (err) {
-    console.error("GETME FAILED:", err);
-    logout();
-  }
-};
+    setUser(null);
 
-/* -----------------------------
-   PERIODIC SESSION VALIDATION
------------------------------- */
-useEffect(() => {
-  // Don't start polling until a user is logged in
-  if (!user) return;
+  };
 
-  const interval = setInterval(async () => {
+
+
+  /*
+  REFRESH USER
+  */
+  const refreshUser = async()=>{
+
     try {
-      await refreshUser();
-    } catch (err) {
-      console.error("Periodic session check failed:", err);
+
+      const me = await getMe();
+
+      setUser(me);
+
+
+    } catch(error){
+
+      console.error(
+        "GETME FAILED",
+        error
+      );
+
+      logout();
+
     }
-  }, 30000); // 30 seconds
 
-  return () => clearInterval(interval);
-}, [user]);
+  };
 
- /* -----------------------------
-     INIT SESSION (RUN ONCE WITH MOBILE DIAGNOSTICS)
-  ------------------------------ */
-  useEffect(() => {
-    const init = async () => {
-      const storedToken = localStorage.getItem("smart-site-token");
 
-      if (!storedToken) {
-        setUser(null); 
+
+
+  /*
+  RESTORE SESSION
+  */
+  useEffect(()=>{
+
+
+    const init = async()=>{
+
+
+      const storedToken =
+        localStorage.getItem(
+          "smart-site-token"
+        );
+
+
+      if(!storedToken){
+
+        setUser(null);
+
         return;
+
       }
+
 
       setToken(storedToken);
 
+
       try {
+
         const me = await getMe();
-        
-        if (me) {
-          setUser(me);
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Session restore failed:", err);
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem("smart-site-token");
+
+        setUser(me);
+
+
+      } catch(error){
+
+        console.error(
+          "Session restore failed",
+          error
+        );
+
+
+        logout();
+
       }
+
+
     };
 
+
     init();
-  }, []);
+
+
+  },[]);
+
+
+
+
+  /*
+  SESSION CHECK EVERY 30s
+  */
+  useEffect(()=>{
+
+
+    if(!user)
+      return;
+
+
+    const timer =
+      setInterval(()=>{
+
+        refreshUser();
+
+      },30000);
+
+
+
+    return ()=>clearInterval(timer);
+
+
+
+  },[user]);
+
+
+
+
+  /*
+  HEARTBEAT
+  */
+  useEffect(()=>{
+
+
+    if(!user)
+      return;
+
+
+    const heartbeat =
+      async()=>{
+
+        try{
+
+          await apiFetch(
+            "/session/heartbeat",
+            {
+              method:"POST"
+            }
+          );
+
+
+        }catch(error){
+
+          console.error(
+            "Heartbeat failed",
+            error
+          );
+
+        }
+
+      };
+
+
+    heartbeat();
+
+
+    const timer =
+      setInterval(
+        heartbeat,
+        30000
+      );
+
+
+    return ()=>clearInterval(timer);
+
+
+
+  },[user]);
+
+
+
+
+
   return (
+
     <AuthContext.Provider
       value={{
         user,
@@ -156,20 +269,33 @@ useEffect(() => {
         refreshUser,
       }}
     >
+
       {children}
+
     </AuthContext.Provider>
+
   );
+
 }
 
-/* -----------------------------
-   HOOK
------------------------------- */
-export function useAuth() {
-  const context = useContext(AuthContext);
 
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
+
+
+export function useAuth(){
+
+  const context =
+    useContext(AuthContext);
+
+
+  if(!context){
+
+    throw new Error(
+      "useAuth must be inside AuthProvider"
+    );
+
   }
 
+
   return context;
+
 }

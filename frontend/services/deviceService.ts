@@ -11,11 +11,11 @@ export async function triggerDeviceControl(
   const data = await apiFetch("/devices/trigger", {
     method: "POST",
     body: JSON.stringify({
-      controlId: deviceId,
-      action,
-      latitude: location.latitude,
-      longitude: location.longitude,
-    }),
+  deviceId,
+  action,
+  latitude: location.latitude,
+  longitude: location.longitude,
+}),
   });
 
   return data;

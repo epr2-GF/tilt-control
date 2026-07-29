@@ -20,7 +20,10 @@ router.get(
 
 
     // Admin only
-    if (user.role !== "admin") {
+   if (
+ user.role !== "admin" &&
+ user.role !== "superadmin"
+) {
 
       return res.status(403).json({
         message: "Admin access required"

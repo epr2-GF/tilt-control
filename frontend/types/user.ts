@@ -1,4 +1,5 @@
 export type Role =
+  | "superadmin"
   | "admin"
   | "visiteur"
   | "epr2"

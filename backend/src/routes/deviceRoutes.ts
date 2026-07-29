@@ -7,48 +7,33 @@ import {
   registerStreamClient,
   getCurrentStates,
 } from "../services/haStreamService";
-
+import {
+  getDevices,
+  getDeviceById,
+} from "../services/deviceService";
 
 const router = Router();
 
-// Static mapping dictionary linking internal controls to HA entity data structures
-const DEVICE_MAP: Record<string, { entityId: string; domain: string }> = {
-  // Now points to your fake switch for triggers
-  "portail-principal": { 
-    entityId: "input_boolean.fakegate", 
-    domain: "input_boolean" 
-  },
-
-  "porte-entrepot": {
-    entityId: "input_boolean.fakedoor",
-    domain: "input_boolean"
-  },
-  "eclairage-salle-des-fetes": {
-    entityId: "input_boolean.fakesallelights",
-    domain: "input_boolean",
-  },
-
-  "eclairage-exterieur": {
-    entityId: "input_boolean.fakesitelights",
-    domain: "input_boolean",
-  },
-
-  "garage-porte-tilt": {
-  entityId: "cover.garage_porte_tilt",
-  domain: "cover"
-  },
-};
+console.log("✅ deviceRoutes loaded");
+/**
+ * GET /devices
+ * Returns all configured devices
+ */
+router.get("/", (req, res) => {
+  res.json(getDevices());
+});
 
 /**
  * POST /devices/trigger
  * Triggers a device state change after checking permissions
  */
+
 router.post(
   "/trigger",
-  authMiddleware,
   timeAccessMiddleware,
   locationMiddleware,
-  async (req, res) => {
+  async (req,res)=>{
+ 
     const user = (req as any).user;
 
 console.log("🔐 DEVICE PERMISSION CHECK", {
@@ -67,13 +52,29 @@ if (user.timeAccessAllowed === false) {
 
 }
   try {
-    const { controlId, action } = req.body; 
+    console.log("Request body:", req.body);
+const { deviceId, action } = req.body;
 
-    // 1. Verify device exists in mapping layer
-    const device = DEVICE_MAP[controlId];
-    if (!device) {
-      return res.status(404).json({ error: "Control device mapping not found" });
-    }
+console.log("Incoming deviceId:", deviceId);
+
+const savedDevice = getDeviceById(Number(deviceId));
+
+if (!savedDevice) {
+
+  return res.status(404).json({
+    error:"Device not found"
+  });
+
+}
+
+
+const device = {
+
+  entityId: savedDevice.entityId,
+
+  domain: savedDevice.entityId.split(".")[0]
+
+};
 
     // 2. Map actions to domain-specific HA actions
     let haService = action; 

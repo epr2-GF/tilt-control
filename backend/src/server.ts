@@ -10,8 +10,19 @@ import { authMiddleware } from "./middleware/authMiddleware";
 import { initHomeAssistantStream } from "./services/haStreamService"; 
 import locationRoutes from "./routes/location";
 import adminRoutes from "./routes/adminRoutes";
+import statusRoutes from "./routes/statusRoutes";
+import sessionRoutes from "./routes/sessionRoutes";
+import deviceAdminRoutes from "./routes/deviceAdminRoutes";
+import { readUsers } from "./data/usersStore";
 
 const app = express();
+
+
+// 🔐 Ensure protected superadmin exists
+readUsers();
+
+
+app.use(express.json());
 
 const allowedOrigins = [
   "http://localhost:3000",
@@ -43,11 +54,30 @@ app.use(
 app.use(express.json());
 
 // ✅ 2. ROUTES
+app.use((req, res, next) => {
+  console.log("➡️", req.method, req.originalUrl);
+  next();
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/devices", authMiddleware, deviceRoutes); // Protect ALL device routes with your JWT middleware
 app.use("/api/location", locationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/status", statusRoutes);
+app.use("/api/session", authMiddleware, sessionRoutes);
+app.use(
+  "/api/admin/devices",
+  authMiddleware,
+  deviceAdminRoutes
+);
+
+app.post("/api/test-session", (req, res) => {
+  console.log("🔥 test session route hit");
+
+  res.json({
+    ok: true
+  });
+});
 
 // ✅ TEST ROUTE
 app.get("/api/test-protected", authMiddleware, (req, res) => {

@@ -61,4 +61,19 @@ export const ROLE_PERMISSIONS = {
       "eclairage-salle-des-fetes",
     ],
   },
+superadmin: {
+  zones: [
+    "tilt",
+    "epr2",
+    "restaurant",
+    "salle-des-fetes",
+    "pecherie",
+    "exterior",
+    "logement-du-lac",
+    "logement-du-tilt"
+  ],
+  controls: [
+    "*"
+  ]
+}
 };

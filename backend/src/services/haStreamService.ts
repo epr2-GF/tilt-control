@@ -1,5 +1,6 @@
+console.log("🔥 haStreamService loaded");
 import WebSocket from "ws";
-import { DEVICE_ENTITIES } from "../config/deviceEntities";
+import { getConfiguredEntities } from "./deviceConfigService";
 
 const HA_URL = process.env.HA_URL || "";
 const HA_TOKEN = process.env.HA_TOKEN || "";
@@ -26,16 +27,18 @@ let reconnectAttempts = 0;
 let connected = false;
 
 // Whitelist of entities our web app actually cares about
-const SSE_ENTITIES = [
-  ...new Set(
-    Object.values(DEVICE_ENTITIES)
-      .flatMap(device => [
-        device.command,
-        device.status,
-      ])
-      .filter(Boolean)
-  ),
-];
+let SSE_ENTITIES:string[] = [];
+
+export function reloadDeviceEntities() {
+
+  SSE_ENTITIES = getConfiguredEntities();
+
+  console.log(
+    "♻️ Reloaded SSE whitelist:",
+    SSE_ENTITIES
+  );
+
+}
 
 export function getCurrentStates() {
   return entityStateCache;
@@ -102,6 +105,8 @@ function broadcastToFrontend(entityId: string, newState: any) {
 
 export function initHomeAssistantStream() {
 
+reloadDeviceEntities();
+
   if (!HA_URL || !HA_TOKEN) return;
 
   console.log("🔌 Connecting to Home Assistant WebSocket Stream...");
@@ -160,6 +165,15 @@ ws.on("open", () => {
     // Authentication successful
     // -------------------------------------------------
 if (msg.type === "auth_ok") {
+
+  SSE_ENTITIES = getConfiguredEntities();
+
+  console.log(
+    "📡 SSE WHITELIST:",
+    SSE_ENTITIES
+  );
+
+
 
   if (healthTimer) {
     clearInterval(healthTimer);
@@ -312,4 +326,10 @@ ws.on("close", () => {
 ws.on("error", (err) => {
   console.error("❌ HA websocket error:", err.message);
 });
+}
+
+export function isHAConnected() {
+
+  return connected;
+
 }

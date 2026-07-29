@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowRightLeft,Warehouse, Lightbulb, LogOut, Users, Map } from "lucide-react";
 import ControlCard from "@/components/ControlCard";
-import BinaryControl from "@/components/BinaryControl";
+import { apiFetch } from "@/lib/api";
+import DeviceRenderer from "@/components/DeviceRenderer";
 
 export default function HomePage() {
   const router = useRouter();
   const { user, logout } = useAuth();
-
+  const [devices, setDevices] = useState<any[]>([]);
+  
   /* -------------------------------------------------------------
       🛡️ STRICT AUTH GUARD SYSTEM
   ------------------------------------------------------------- */
@@ -19,6 +21,44 @@ export default function HomePage() {
       window.location.href = "/login";
     }
   }, [user]);
+
+useEffect(() => {
+
+  async function loadDevices() {
+
+    try {
+
+const data = await apiFetch("/devices");
+
+if (!Array.isArray(data)) {
+  console.error("Device API did not return an array:", data);
+  return;
+}
+
+const homeDevices = data.filter(
+  (device: any) =>
+    device.zones?.includes("accueil")
+);
+
+setDevices(homeDevices);
+
+    } catch (error) {
+
+      console.error(
+        "Failed loading home devices",
+        error
+      );
+
+    }
+
+  }
+
+  if(user){
+    loadDevices();
+  }
+
+}, [user]);
+
 
   if (user === undefined) {
     return (
@@ -36,8 +76,14 @@ export default function HomePage() {
   /* -------------------------------------------------------------
       APPLICATION DATA & PERMISSIONS
   ------------------------------------------------------------- */
-  const role = user.role;
-  const isAdmin = role === "admin";
+const role = user.role;
+
+const isAdmin =
+  role === "admin" ||
+  role === "superadmin";
+
+const isSuperAdmin =
+  role === "superadmin";
 
   const allZones = [
     { id: "tilt", name: "Tilt", path: "/zone/tilt" },
@@ -45,7 +91,7 @@ export default function HomePage() {
     { id: "restaurant", name: "Restaurant", path: "/zone/restaurant" },
     { id: "salle-des-fetes", name: "Salle des Fêtes", path: "/zone/salle-des-fetes" },
     { id: "pecherie", name: "Pêcherie", path: "/zone/pecherie" },
-    { id: "exterior", name: "Exterior", path: "/zone/exterior" },
+    { id: "exterior", name: "Extérieur", path: "/zone/exterior" },
     { id: "logement-du-lac", name: "Logement du Lac", path: "/zone/logement-du-lac" },
     { id: "logement-du-tilt", name: "Logement du Tilt", path: "/zone/logement-du-tilt" },
   ];
@@ -120,114 +166,77 @@ const zones = allZones.filter((zone) =>
 
 </header>
 
-      {/* ADMIN */}
-      {isAdmin && (
-        <div className="mb-6">
-          <ControlCard
-            title="Administration"
-            description="Gestion des utilisateurs et permissions"
-            icon={<Users size={20} />}
-          >
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => router.push("/admin")}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition"
-              >
-                Utilisateurs
-              </button>
+{/* ADMIN */}
+{isAdmin && (
+  <div className="mb-6">
+    <ControlCard
+      title="Administration"
+      description="Gestion des utilisateurs et permissions"
+      icon={<Users size={20} />}
+    >
 
-              <button
-                onClick={() => window.location.href = "reolink://"}
-                className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg transition"
-              >
-                Cameras
-              </button>
-              <button
-  onClick={() => router.push("/admin/audit")}
-  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition"
->
-  Journal
-</button>
-            </div>
-          </ControlCard>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-3">
 
-     {/* CONTROLS SECTION */}
+        <button
+          onClick={() => router.push("/admin")}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition"
+        >
+          Utilisateurs
+        </button>
+
+
+        <button
+          onClick={() => window.location.href = "reolink://"}
+          className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg transition"
+        >
+          Cameras
+        </button>
+
+
+        {isSuperAdmin && (
+  <button
+    onClick={() => router.push("/admin/audit")}
+    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition"
+  >
+    Journal
+  </button>
+)}
+       {isSuperAdmin && (
+  <button
+    onClick={() => router.push("/admin/devices")}
+    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition"
+  >
+    Appareils
+  </button>
+)}
+
+        <button
+          onClick={() => router.push("/admin/status")}
+          className="px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg transition"
+        >
+          Statut
+        </button>
+
+      </div>
+
+    </ControlCard>
+  </div>
+)}
+
+ {/* CONTROLS SECTION */}
+
 <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
- {user.permissions?.controls.includes("portail-principal") && (
 
-<BinaryControl
-  controlId="portail-principal"
-  commandEntity="input_boolean.fakegate"
-  statusEntity="input_boolean.fakegate"
+{devices.map((device)=>(
 
-  title="Portail Principal"
-  description="Entrée principale"
-
-  icon={<ArrowRightLeft size={20} />}
-
-  onText="Ouvert"
-  offText="Fermé"
-
-  buttonText="Commander"
-/>
-  )}
-
-{user.permissions?.controls.includes("porte-entrepot") && (
-  <BinaryControl
-  controlId="porte-entrepot"
-  commandEntity="input_boolean.fakedoor"
-  statusEntity="input_boolean.fakedoor"
-
-  title="Porte Entrepôt"
-  description="Accès principal"
-
-  icon={<Warehouse size={20} />}
-
-  onText="Ouverte"
-  offText="Fermé"
-
-  buttonText="Commander"
-/>
-)}
-
-{user.permissions?.controls.includes("eclairage-exterieur") && (
-  <BinaryControl
-    controlId="eclairage-exterieur"
-    commandEntity="input_boolean.fakesitelights"
-    statusEntity="input_boolean.fakesitelights"
-
-    title="Éclairage Tilt"
-    description="Éclairage extérieur"
-
-    icon={<Lightbulb size={20} />}
-
-    onText="Allumé"
-    offText="Éteint"
-
-    buttonText="Basculer"
+  <DeviceRenderer
+    key={device.id}
+    device={device}
   />
-)}
 
-{user.permissions?.controls.includes("eclairage-salle-des-fetes") && (
-  <BinaryControl
-    controlId="eclairage-salle-des-fetes"
-    commandEntity="input_boolean.fakesallelights"
-    statusEntity="input_boolean.fakesallelights"
+))}
 
-    title="Éclairage S.D.F"
-    description="Éclairage Exterior"
-
-    icon={<Lightbulb size={20} />}
-
-    onText="Allumé"
-    offText="Éteint"
-
-    buttonText="Basculer"
-  />
-)}
-      </section>
+</section>
 
       {/* ZONES */}
       {zones.length > 0 && (

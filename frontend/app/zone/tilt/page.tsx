@@ -1,21 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-
+import { apiFetch } from "@/lib/api";
 import { Building2, ArrowRightLeft, Warehouse } from "lucide-react";
 
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
-import BinaryControl from "@/components/BinaryControl";
+import DeviceRenderer from "@/components/DeviceRenderer";
 
 
 export default function TiltPage() {
 
   const router = useRouter();
   const { user } = useAuth();
-
+  const [devices, setDevices] = useState<any[]>([]);
 
   /*
     AUTH + PERMISSION CHECK
@@ -39,13 +39,44 @@ export default function TiltPage() {
   }, [user, router]);
 
 
+useEffect(() => {
+
+  async function loadDevices() {
+
+    try {
+
+      const data = await apiFetch("/devices");
+
+      const zoneDevices = data.filter(
+        (device: any) =>
+          device.zones?.includes("tilt")
+      );
+
+      setDevices(zoneDevices);
+
+    } catch (error) {
+
+      console.error(
+        "Failed loading devices",
+        error
+      );
+
+    }
+
+  }
+
+  loadDevices();
+
+}, []);
+
+
+
   if (!user) return null;
 
 
   if (!user.permissions?.zones?.includes("tilt")) {
     return null;
   }
-
 
 
   return (
@@ -69,54 +100,15 @@ export default function TiltPage() {
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
 
-        {user.permissions?.controls?.includes(
-          "portail-principal"
-        ) && (
+{devices.map((device)=>(
 
-          <BinaryControl
-            controlId="portail-principal"
+<DeviceRenderer
+ key={device.id}
+ device={device}
+/>
 
-            commandEntity="input_boolean.fakegate"
-            statusEntity="input_boolean.fakegate"
+))}
 
-            title="Portail Principal"
-            description="Entrée principale"
-
-            icon={
-              <ArrowRightLeft size={20} />
-            }
-
-            onText="Ouvert"
-            offText="Fermé"
-
-            buttonText="Commander"
-          />
-
-        )}
-{user.permissions?.controls?.includes(
-  "porte-entrepot"
-) && (
-
-  <BinaryControl
-    controlId="porte-entrepot"
-
-    commandEntity="input_boolean.fakedoor"
-    statusEntity="input_boolean.fakedoor"
-
-    title="Porte Entrepôt"
-    description="Accès principal"
-
-    icon={
-      <Warehouse size={20} />
-    }
-
-    onText="Ouverte"
-    offText="Fermé"
-
-    buttonText="Commander"
-  />
-
-)}
 
       </section>
 

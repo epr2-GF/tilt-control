@@ -65,28 +65,4 @@ export async function loginService(username: string, password: string) {
   return data;
 }
 
-/**
- * GET CURRENT USER
- */
-export async function getMe(token?: string) {
-  const base = getApiBase();
 
-  const res = await fetch(`${base}/auth/me`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-
-  let data: any = {};
-
-  try {
-    data = await res.json();
-  } catch {}
-
-  if (!res.ok) {
-    throw new Error(data?.message || "Session invalide");
-  }
-
-  return data;
-}

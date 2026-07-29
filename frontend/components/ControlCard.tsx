@@ -68,10 +68,10 @@ export default function ControlCard({
       </div>
 
       {description && (
-        <p className="text-sm text-slate-400 mb-4">
-          {description}
-        </p>
-      )}
+  <p className="text-sm text-slate-400 mb-4">
+    {description}
+  </p>
+)}
 
       <div className="flex gap-3 flex-wrap">
         {children}

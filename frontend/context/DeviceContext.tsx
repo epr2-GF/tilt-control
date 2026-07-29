@@ -122,7 +122,6 @@ export function DeviceProvider({
     };
 
     eventSource.onmessage = (event) => {
-
       try {
 
         const update =

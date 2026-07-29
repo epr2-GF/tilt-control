@@ -29,7 +29,9 @@ export function authMiddleware(
     const decoded = jwt.verify(token, JWT_SECRET) as any;
 
     const users = readUsers();
-    const currentUser = users.find((u) => u.id === decoded.id);
+    const currentUser = users.find(
+  (u) => String(u.id) === String(decoded.id)
+);
 
     if (!currentUser) {
       return res.status(401).json({ message: "Utilisateur introuvable" });

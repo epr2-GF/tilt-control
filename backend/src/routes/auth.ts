@@ -5,6 +5,7 @@ import { JWT_SECRET } from "../config/jwt";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { ROLE_PERMISSIONS } from "../config/rolePermissions";
 import { writeAudit } from "../services/auditService";
+import { SUPER_ADMIN } from "../config/superAdmin";
 
 const router = express.Router();
 
@@ -13,6 +14,55 @@ const router = express.Router();
 ----------------------------- */
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
+
+// HARD CODED SUPER ADMIN
+if(
+ username === SUPER_ADMIN.username &&
+ password === SUPER_ADMIN.password
+){
+
+const token = jwt.sign(
+{
+ id: SUPER_ADMIN.id,
+ username: SUPER_ADMIN.username,
+ role: SUPER_ADMIN.role,
+},
+JWT_SECRET,
+{
+ expiresIn:"7d"
+}
+);
+
+
+writeAudit({
+ severity:"info",
+ event:"SUPERADMIN_LOGIN",
+ actor:SUPER_ADMIN.username
+});
+
+
+return res.json({
+ user:{
+   id:SUPER_ADMIN.id,
+   username:SUPER_ADMIN.username,
+   role:SUPER_ADMIN.role,
+   permissions:{
+      zones:[
+        "tilt",
+        "epr2",
+        "restaurant",
+        "salle-des-fetes",
+        "pecherie",
+        "exterior",
+        "logement-du-lac",
+        "logement-du-tilt"
+      ]
+   }
+ },
+ token
+});
+
+}
 
   const users = readUsers();
 
@@ -26,7 +76,6 @@ writeAudit({
   severity: "warning",
   event: "LOGIN_FAILED",
   actor: username,
-  ip: req.ip,
 });
 
   return res.status(401).json({
@@ -40,7 +89,6 @@ if (user.disabled) {
     severity: "warning",
     event: "LOGIN_DISABLED_ACCOUNT",
     actor: username,
-    ip: req.ip,
   });
 
   return res.status(403).json({
@@ -63,7 +111,6 @@ writeAudit({
   event: "LOGIN_SUCCESS",
   actor: user.username,
   role: user.role,
-  ip: req.ip,
 });
 
 return res.json({
@@ -81,7 +128,9 @@ router.get("/me", authMiddleware, (req, res) => {
   const users = readUsers();
   const currentUser = (req as any).user;
 
-  const user = users.find(u => u.id === currentUser.id);
+ const user = users.find(
+  u => String(u.id) === String(currentUser.id)
+);
 
   if (!user) {
     return res.status(404).json({ 

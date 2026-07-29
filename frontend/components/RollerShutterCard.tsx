@@ -8,7 +8,14 @@ import { useDevices } from "@/context/DeviceContext";
 import { apiFetch } from "@/lib/api";
 
 
-export default function RollerShutterCard() {
+interface RollerShutterCardProps {
+  device: any;
+}
+
+
+export default function RollerShutterCard({
+  device
+}: RollerShutterCardProps) {
 
   const { states } = useDevices();
   const { showToast } = useToast();
@@ -16,7 +23,7 @@ export default function RollerShutterCard() {
   const [pending, setPending] = useState(false);
 
 
-  const door = states["cover.garage_porte_tilt"];
+  const door = states[device.entityId];
 
   const position =
     door?.attributes?.current_position ?? 0;
@@ -41,9 +48,9 @@ try {
   await apiFetch("/devices/trigger", {
     method:"POST",
     body: JSON.stringify({
-      controlId:"garage-porte-tilt",
-      action:service,
-    }),
+  deviceId: device.id,
+  action: service,
+}),
   });
 
   showToast(
@@ -77,8 +84,8 @@ try {
 return (
 
 <ControlCard
-  title="Garage Porte Tilt"
-  description="Porte sectionnelle"
+  title={device.name}
+  description={device.description}
   icon={<ArrowUpDown size={20}/>}
   status={`${position}%`}
   statusColor={
