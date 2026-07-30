@@ -134,6 +134,7 @@ export function initHomeAssistantStream() {
 
 reloadDeviceEntities();
 
+
   if (!HA_URL || !HA_TOKEN) return;
 
   console.log("🔌 Connecting to Home Assistant WebSocket Stream...");
@@ -244,9 +245,8 @@ if (msg.type === "auth_ok") {
 // Initial snapshot
 // -------------------------------------------------
 if (
-  msg.id === 1 &&
-  msg.type === "result" &&
-  Array.isArray(msg.result)
+    msg.type === "result" &&
+    Array.isArray(msg.result)
 ) {
   console.log("📥 Loading initial Home Assistant state cache...");
 
@@ -353,6 +353,23 @@ ws.on("close", () => {
 ws.on("error", (err) => {
   console.error("❌ HA websocket error:", err.message);
 });
+}
+
+export async function refreshCurrentStates() {
+
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    console.warn("⚠️ Cannot refresh states - HA websocket not connected");
+    return;
+  }
+
+  console.log("🔄 Refreshing Home Assistant state cache");
+
+  ws.send(
+    JSON.stringify({
+      id: Date.now(),
+      type: "get_states",
+    })
+  );
 }
 
 export function isHAConnected() {

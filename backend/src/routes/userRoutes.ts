@@ -6,7 +6,7 @@ import { roleMiddleware } from "../middleware/roleMiddleware";
 const router = express.Router();
 
 router.use(authMiddleware);
-router.use(roleMiddleware(["admin"]));
+router.use(roleMiddleware(["admin","superadmin"]));
 
 /**
  * GET all users
@@ -22,7 +22,16 @@ router.get("/", (req, res) => {
 router.post("/", (req, res) => {
   const users = readUsers();
   const newUser = req.body;
+const currentUser = (req as any).user;
 
+if (
+  newUser.role === "superadmin" &&
+  currentUser.role !== "superadmin"
+) {
+  return res.status(403).json({
+    message: "Only superadmin can create superadmin accounts",
+  });
+}
   if (!newUser?.id || !newUser?.username) {
     return res.status(400).json({ message: "Invalid user" });
   }
@@ -41,31 +50,72 @@ router.put("/:id", (req, res) => {
 
   const { id } = req.params;
   const updatedUser = req.body;
+  const currentUser = (req as any).user;
 
   const existingUser = users.find(u => u.id === id);
 
   if (!existingUser) {
-    return res.status(404).json({ message: "User not found" });
+    return res.status(404).json({ 
+      message: "User not found" 
+    });
   }
 
+
+  // ❌ Admin cannot modify superadmin
+  if (
+    existingUser.role === "superadmin" &&
+    currentUser.role !== "superadmin"
+  ) {
+    return res.status(403).json({
+      message: "Cannot modify superadmin account",
+    });
+  }
+
+
+  // ❌ Admin cannot promote users to superadmin
+  if (
+    updatedUser.role === "superadmin" &&
+    currentUser.role !== "superadmin"
+  ) {
+    return res.status(403).json({
+      message: "Only superadmin can assign superadmin role",
+    });
+  }
+
+
   // ❌ prevent removing last admin role
-  if (existingUser.role === "admin" && updatedUser.role !== "admin") {
-    const adminCount = users.filter(u => u.role === "admin").length;
+  if (
+    existingUser.role === "admin" &&
+    updatedUser.role !== "admin"
+  ) {
+
+    const adminCount =
+      users.filter(
+        u => u.role === "admin"
+      ).length;
+
 
     if (adminCount <= 1) {
       return res.status(403).json({
-        message: "Cannot remove admin role from the last admin",
+        message:
+          "Cannot remove admin role from the last admin",
       });
     }
   }
 
-  const index = users.findIndex(u => u.id === id);
+
+  const index =
+    users.findIndex(
+      u => u.id === id
+    );
+
 
   users[index] = {
     ...users[index],
     ...updatedUser,
     id,
   };
+
 
   writeUsers(users);
 
@@ -104,7 +154,15 @@ router.delete("/:id", (req, res) => {
       });
     }
   }
-
+// ❌ prevent deleting superadmin
+if (
+  userToDelete.role === "superadmin" &&
+  currentUser.role !== "superadmin"
+) {
+  return res.status(403).json({
+    message: "Cannot delete superadmin account",
+  });
+}
   const index = users.findIndex(u => u.id === id);
 
   users.splice(index, 1);
@@ -122,6 +180,7 @@ router.patch("/:id/toggle", (req, res) => {
   const { id } = req.params;
   const currentUser = (req as any).user;
 
+
   // ❌ prevent self-disable
   if (currentUser.id === id) {
     return res.status(403).json({
@@ -129,15 +188,35 @@ router.patch("/:id/toggle", (req, res) => {
     });
   }
 
-  const user = users.find((u) => u.id === id);
+
+  const user = users.find(
+    (u) => u.id === id
+  );
+
 
   if (!user) {
-    return res.status(404).json({ message: "User not found" });
+    return res.status(404).json({
+      message: "User not found",
+    });
   }
+
+
+  // ❌ prevent disabling superadmin
+  if (
+    user.role === "superadmin" &&
+    currentUser.role !== "superadmin"
+  ) {
+    return res.status(403).json({
+      message: "Cannot disable superadmin account",
+    });
+  }
+
 
   user.disabled = !user.disabled;
 
+
   writeUsers(users);
+
 
   return res.json(users);
 });

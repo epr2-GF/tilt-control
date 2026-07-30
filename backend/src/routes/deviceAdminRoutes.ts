@@ -1,5 +1,8 @@
 import express from "express";
-import { reloadDeviceEntities } from "../services/haStreamService";
+import {
+  reloadDeviceEntities,
+  refreshCurrentStates
+} from "../services/haStreamService";
 import { writeAudit } from "../services/auditService";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { superAdminOnly } from "../middleware/superAdminMiddleware";
@@ -46,11 +49,13 @@ router.get("/:id", (req, res) => {
 /* -----------------------------
    CREATE DEVICE
 ------------------------------ */
-router.post("/", (req,res)=>{
+router.post("/", async (req,res)=>{
 
 const device = addDevice(req.body);
 
 reloadDeviceEntities();
+
+await refreshCurrentStates();
 
 writeAudit({
   severity: "info",
@@ -71,7 +76,7 @@ res.status(201).json(device);
 /* -----------------------------
    UPDATE DEVICE
 ------------------------------ */
-router.put("/:id", (req,res)=>{
+router.put("/:id", async (req,res)=>{
 
   const id = Number(req.params.id);
 
@@ -85,6 +90,8 @@ router.put("/:id", (req,res)=>{
 
   reloadDeviceEntities();
 
+  await refreshCurrentStates();
+
   res.json(device);
 
 });
@@ -92,7 +99,7 @@ router.put("/:id", (req,res)=>{
 /* -----------------------------
    DELETE DEVICE
 ------------------------------ */
-router.delete("/:id", (req,res)=>{
+router.delete("/:id", async (req,res)=>{
 
   const id = Number(req.params.id);
 
@@ -107,6 +114,8 @@ if (!device) {
 deleteDevice(id);
 
 reloadDeviceEntities();
+
+await refreshCurrentStates();
 
 writeAudit({
   severity: "warning",

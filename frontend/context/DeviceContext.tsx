@@ -74,7 +74,7 @@ export function DeviceProvider({
         : null);
 
     // Wait until AuthContext has finished restoring session
-    if (!user || !activeToken) {
+    if (!activeToken) {
       return;
     }
 
@@ -271,7 +271,7 @@ export function DeviceProvider({
 
 
 
-  }, [user, token]);
+  }, [token]);
 
 
 

@@ -133,10 +133,10 @@ async function handleDelete(id: string) {
   }
 }
 
-  // -----------------------------
-  // TOGGLE REMOTE ACCESS
-  // -----------------------------
-  async function handleRemoteAccessToggle(user: any) {
+// -----------------------------
+// TOGGLE REMOTE ACCESS
+// -----------------------------
+async function handleRemoteAccessToggle(user: any) {
 
   try {
 
@@ -158,14 +158,25 @@ async function handleDelete(id: string) {
       )
     );
 
-  } catch (err) {
-
-    console.error(
-      "Remote access update failed",
-      err
+    showToast(
+      "Accès distant modifié",
+      "success"
     );
 
-  }
+
+  } catch (err: any) {
+
+  console.warn(
+    "Remote access update rejected:",
+    err.message
+  );
+
+  showToast(
+    err.message || "Erreur lors de la modification de l'accès distant",
+    "error"
+  );
+
+}
 
 }
 
