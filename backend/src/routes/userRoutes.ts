@@ -12,8 +12,26 @@ router.use(roleMiddleware(["admin","superadmin"]));
  * GET all users
  */
 router.get("/", (req, res) => {
-  const users = readUsers();
-  res.json(users);
+  const currentUser = (req as any).user;
+
+  let users = readUsers();
+
+  if (currentUser.role !== "superadmin") {
+    users = users.filter(
+      user => user.role !== "superadmin"
+    );
+  }
+
+  const safeUsers = users.map(user => {
+    const {
+      password,
+      ...rest
+    } = user;
+
+    return rest;
+  });
+
+  res.json(safeUsers);
 });
 
 /**
@@ -36,10 +54,9 @@ if (
     return res.status(400).json({ message: "Invalid user" });
   }
 
-  users.push(newUser);
-  writeUsers(users);
-
-  return res.json(users);
+return res.json(
+  users.map(({password, ...user}) => user)
+);
 });
 
 /**
@@ -110,11 +127,17 @@ router.put("/:id", (req, res) => {
     );
 
 
-  users[index] = {
-    ...users[index],
-    ...updatedUser,
-    id,
-  };
+const {
+  password,
+  ...safeUpdate
+} = updatedUser;
+
+
+users[index] = {
+  ...users[index],
+  ...safeUpdate,
+  id,
+};
 
 
   writeUsers(users);
