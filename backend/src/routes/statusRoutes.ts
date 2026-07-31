@@ -2,10 +2,15 @@ import express from "express";
 import { exec } from "child_process";
 import { isHAConnected } from "../services/haStreamService";
 import { getActiveSessions } from "../services/sessionService";
+import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
+router.use(authMiddleware);
+
 router.get("/", (req, res) => {
+
+  const currentUser = (req as any).user;
 
   const uptimeSeconds = process.uptime();
 
@@ -26,9 +31,7 @@ router.get("/", (req, res) => {
           );
 
           if (backend) {
-
             pm2Restarts = backend.pm2_env.restart_time;
-
           }
 
         } catch(e) {
@@ -42,22 +45,46 @@ router.get("/", (req, res) => {
 
       }
 
-res.json({
 
-  backend: "online",
+      let activeUsers = getActiveSessions();
 
-  uptimeSeconds,
 
-  pm2Restarts,
+      // Hide superadmin sessions from admin users
+      if (currentUser.role !== "superadmin") {
 
-  homeAssistant:
-    isHAConnected()
-      ? "connected"
-      : "disconnected",
+        activeUsers = activeUsers.filter(
+          user => user.role !== "superadmin"
+        );
 
-  activeUsers: getActiveSessions()
+      }
 
-});
+
+      // Only expose safe fields
+      activeUsers = activeUsers.map(
+        user => ({
+          username: user.username,
+          role: user.role,
+          lastSeen: user.lastSeen,
+        })
+      );
+
+
+      res.json({
+
+        backend: "online",
+
+        uptimeSeconds,
+
+        pm2Restarts,
+
+        homeAssistant:
+          isHAConnected()
+            ? "connected"
+            : "disconnected",
+
+        activeUsers
+
+      });
 
     }
   );
