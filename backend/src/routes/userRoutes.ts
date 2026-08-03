@@ -52,25 +52,35 @@ router.get("/", (req, res) => {
  * CREATE user
  */
 router.post("/", (req, res) => {
+
   const users = readUsers();
   const newUser = req.body;
-const currentUser = (req as any).user;
+  const currentUser = (req as any).user;
 
-if (
-  newUser.role === "superadmin" &&
-  currentUser.role !== "superadmin"
-) {
-  return res.status(403).json({
-    message: "Only superadmin can create superadmin accounts",
-  });
-}
-  if (!newUser?.id || !newUser?.username) {
-    return res.status(400).json({ message: "Invalid user" });
+
+  if (
+    newUser.role === "superadmin" &&
+    currentUser.role !== "superadmin"
+  ) {
+    return res.status(403).json({
+      message: "Only superadmin can create superadmin accounts",
+    });
   }
 
-return res.json(
-  users.map(({password, ...user}) => user)
-);
+
+  if (!newUser?.id || !newUser?.username || !newUser?.password) {
+    return res.status(400).json({
+      message: "Invalid user"
+    });
+  }
+
+
+  users.push(newUser);
+
+  writeUsers(users);
+
+
+  return res.json(users);
 });
 
 /**
@@ -96,17 +106,6 @@ router.put("/:id", (req, res) => {
 if (existingUser.id === "0") {
   return res.status(403).json({
     message: "Cannot modify system superadmin account",
-  });
-}
-
-// ❌ Prevent changing GhostAdmin password
-if (
-  id === "0" &&
-  updatedUser.password &&
-  updatedUser.password !== existingUser.password
-) {
-  return res.status(403).json({
-    message: "Cannot change system superadmin password",
   });
 }
 
@@ -159,22 +158,31 @@ if (
     );
 
 
-const {
-  password,
-  ...safeUpdate
-} = updatedUser;
-
-
 users[index] = {
   ...users[index],
-  ...safeUpdate,
+  ...updatedUser,
   id,
 };
 
 
   writeUsers(users);
 
-  return res.json(users);
+return res.json(
+  users.map(user => {
+
+    if (user.id === "0") {
+      const {
+        password,
+        ...rest
+      } = user;
+
+      return rest;
+    }
+
+    return user;
+
+  })
+);
 });
 
 /**
