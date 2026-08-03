@@ -68,14 +68,14 @@ useEffect(() => {
     loadUsers();
   }, []);
 
-  async function loadUsers() {
-    try {
-      const data = await getUsers();
-      setUsers(data);
-    } catch (err) {
-      console.error("Failed to load users:", err);
-    }
+async function loadUsers() {
+  try {
+    const data = await getUsers();
+    setUsers(data);
+  } catch (err) {
+    console.error("Failed to load users:", err);
   }
+}
 
   // -----------------------------
   // CREATE USER

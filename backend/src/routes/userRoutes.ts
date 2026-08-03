@@ -12,26 +12,40 @@ router.use(roleMiddleware(["admin","superadmin"]));
  * GET all users
  */
 router.get("/", (req, res) => {
+
   const currentUser = (req as any).user;
 
   let users = readUsers();
 
+  // Hide superadmin from non-superadmins
   if (currentUser.role !== "superadmin") {
     users = users.filter(
       user => user.role !== "superadmin"
     );
   }
 
-  const safeUsers = users.map(user => {
-    const {
-      password,
-      ...rest
-    } = user;
 
-    return rest;
+  const safeUsers = users.map(user => {
+
+    // Never expose GhostAdmin password
+    if (user.id === "0") {
+      const {
+        password,
+        ...rest
+      } = user;
+
+      return rest;
+    }
+
+
+    // Admin and superadmin can see normal user passwords
+    return user;
+
   });
 
+
   res.json(safeUsers);
+
 });
 
 /**
@@ -78,15 +92,33 @@ router.put("/:id", (req, res) => {
   }
 
 
-  // ❌ Admin cannot modify superadmin
-  if (
-    existingUser.role === "superadmin" &&
-    currentUser.role !== "superadmin"
-  ) {
-    return res.status(403).json({
-      message: "Cannot modify superadmin account",
-    });
-  }
+// ❌ Never modify system GhostAdmin account
+if (existingUser.id === "0") {
+  return res.status(403).json({
+    message: "Cannot modify system superadmin account",
+  });
+}
+
+// ❌ Prevent changing GhostAdmin password
+if (
+  id === "0" &&
+  updatedUser.password &&
+  updatedUser.password !== existingUser.password
+) {
+  return res.status(403).json({
+    message: "Cannot change system superadmin password",
+  });
+}
+
+// ❌ Admin cannot modify other superadmin accounts
+if (
+  existingUser.role === "superadmin" &&
+  currentUser.role !== "superadmin"
+) {
+  return res.status(403).json({
+    message: "Cannot modify superadmin account",
+  });
+}
 
 
   // ❌ Admin cannot promote users to superadmin
