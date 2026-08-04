@@ -8,6 +8,27 @@ const router = express.Router();
 router.use(authMiddleware);
 router.use(roleMiddleware(["admin","superadmin"]));
 
+function sanitizeUsersFor(currentUser: any, users: any[]) {
+  let visibleUsers = [...users];
+
+  // Hide superadmins from non-superadmins
+  if (currentUser.role !== "superadmin") {
+    visibleUsers = visibleUsers.filter(
+      u => u.role !== "superadmin"
+    );
+  }
+
+  return visibleUsers.map(user => {
+    // Never expose GhostAdmin password
+    if (user.id === "0") {
+      const { password, ...rest } = user;
+      return rest;
+    }
+
+    return user;
+  });
+}
+
 /**
  * GET all users
  */
@@ -80,7 +101,9 @@ router.post("/", (req, res) => {
   writeUsers(users);
 
 
-  return res.json(users);
+ return res.json(
+  sanitizeUsersFor(currentUser, users)
+);
 });
 
 /**
@@ -168,20 +191,7 @@ users[index] = {
   writeUsers(users);
 
 return res.json(
-  users.map(user => {
-
-    if (user.id === "0") {
-      const {
-        password,
-        ...rest
-      } = user;
-
-      return rest;
-    }
-
-    return user;
-
-  })
+  sanitizeUsersFor(currentUser, users)
 );
 });
 
@@ -231,7 +241,9 @@ if (
   users.splice(index, 1);
   writeUsers(users);
 
-  return res.json(users);
+return res.json(
+  sanitizeUsersFor(currentUser, users)
+);
 });
 
 /**
@@ -281,7 +293,9 @@ router.patch("/:id/toggle", (req, res) => {
   writeUsers(users);
 
 
-  return res.json(users);
+return res.json(
+  sanitizeUsersFor(currentUser, users)
+);
 });
 
 export default router;
