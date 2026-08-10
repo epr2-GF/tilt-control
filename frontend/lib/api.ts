@@ -64,7 +64,32 @@ if (res.status === 401)  {
   throw new Error(message);
 }
 
+if (res.status === 403) {
+  const error = await res.json().catch(() => ({}));
 
+  const message =
+    error.message || "Accès refusé";
+
+  if (typeof window !== "undefined") {
+    if (window.location.pathname !== "/login") {
+      console.warn(
+        "Forbidden API response - resetting access session.",
+        message
+      );
+
+      localStorage.removeItem("smart-site-token");
+
+      sessionStorage.setItem(
+        "logout-message",
+        message
+      );
+
+      window.location.href = "/login";
+    }
+  }
+
+  throw new Error(message);
+}
 
 
   

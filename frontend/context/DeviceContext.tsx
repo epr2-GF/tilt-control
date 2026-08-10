@@ -169,64 +169,39 @@ export function DeviceProvider({
 
     };
 
-    eventSource.onmessage =
-      (event) => {
+eventSource.onmessage = (event) => {
+  try {
+    const update = JSON.parse(event.data);
 
+    const entityId =
+      update.entityId ||
+      update.entity_id;
 
-        try {
+    if (!entityId) {
+      return;
+    }
 
-          const update =
-            JSON.parse(
-              event.data
-            );
+    setStates(previous => ({
+      ...previous,
 
+      [entityId]: {
+        ...previous[entityId],
+        state: update.state,
+        attributes:
+          update.attributes ??
+          previous[entityId]?.attributes,
+      },
+    }));
 
+  } catch (error) {
 
-          if (
-            update.entityId
-          ) {
+    console.error(
+      "❌ SSE parse error",
+      error
+    );
 
-
-            setStates(
-              previous => ({
-
-                ...previous,
-
-
-                [update.entityId]:
-                {
-
-                  state:
-                    update.state,
-
-
-                  attributes:
-                    update.attributes,
-
-                }
-
-              })
-            );
-
-
-          }
-
-
-
-        }
-        catch(error) {
-
-
-          console.error(
-            "❌ SSE parse error",
-            error
-          );
-
-
-        }
-
-
-      };
+  }
+};
 
 
 

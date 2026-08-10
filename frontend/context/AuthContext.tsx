@@ -92,28 +92,28 @@ setUser(me);
   /*
   REFRESH USER
   */
-  const refreshUser = async()=>{
+const refreshUser = async () => {
+  try {
+    const me = await getMe();
 
-    try {
+    setUser(me);
 
-      const me = await getMe();
+  } catch (error) {
 
-      setUser(me);
+    console.error(
+      "GETME FAILED - session retained:",
+      error
+    );
 
-
-    } catch(error){
-
-      console.error(
-        "GETME FAILED",
-        error
-      );
-
-      logout();
-
-    }
-
-  };
-
+    // Do NOT logout here.
+    //
+    // apiFetch() handles 401/403 authentication
+    // failures and redirects to /login.
+    //
+    // Temporary network/API failures should not
+    // destroy a valid 7-day JWT.
+  }
+};
 
 
 
