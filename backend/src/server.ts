@@ -55,7 +55,7 @@ app.use(express.json());
 
 // ✅ 2. ROUTES
 app.use((req, res, next) => {
-  console.log("➡️", req.method, req.originalUrl);
+  console.log(`➡️ ${req.method} ${req.path}`);
   next();
 });
 app.use("/api/auth", authRoutes);

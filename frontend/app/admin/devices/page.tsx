@@ -8,6 +8,23 @@ import ZoneHeader from "@/components/ZoneHeader";
 import {
   Activity,
   Plus,
+  DoorOpen,
+  Lightbulb,
+  Warehouse,
+  Power,
+  Fan,
+  Thermometer,
+  Camera,
+  Lock,
+  Unlock,
+  Droplets,
+  Sun,
+  Settings,
+  Home,
+  ToggleLeft,
+  Gauge,
+  CircleHelp,
+  ArrowRightLeft,
 } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
@@ -30,7 +47,7 @@ const [form, setForm] = useState({
   statusTrue: "ON",
   statusFalse: "OFF",
 
-  zones: ["Tilt"],
+  zones: ["tilt"],
   icon: "device",
   enabled: true,
   sortOrder: 1,
@@ -46,6 +63,26 @@ const zones = [
   { id:"pecherie", label:"Pêcherie" },
   { id:"logement-du-lac", label:"Logement du Lac" },
   { id:"logement-du-tilt", label:"Logement du Tilt" },
+];
+
+const iconOptions = [
+  { value: "device", label: "Appareil", icon: CircleHelp },
+  { value: "door", label: "Porte", icon: DoorOpen },
+  { value: "light", label: "Éclairage", icon: Lightbulb },
+  { value: "warehouse", label: "Entrepôt", icon: Warehouse },
+  { value: "power", label: "Alimentation", icon: Power },
+  { value: "fan", label: "Ventilateur", icon: Fan },
+  { value: "thermometer", label: "Température", icon: Thermometer },
+  { value: "camera", label: "Caméra", icon: Camera },
+  { value: "lock", label: "Verrouillé", icon: Lock },
+  { value: "unlock", label: "Déverrouillé", icon: Unlock },
+  { value: "water", label: "Eau", icon: Droplets },
+  { value: "sun", label: "Solaire", icon: Sun },
+  { value: "home", label: "Maison", icon: Home },
+  { value: "switch", label: "Interrupteur", icon: ToggleLeft },
+  { value: "gauge", label: "Mesure", icon: Gauge },
+  { value: "settings", label: "Réglages", icon: Settings },
+  { value: "gateslide", label: "Portail coulisse", icon: ArrowRightLeft },
 ];
 
 async function deleteDevice(id:number){
@@ -209,269 +246,388 @@ setForm({
 </button>
 {showForm && (
 
-<div className="
-mt-6
-bg-slate-900/70
-border border-slate-700
-rounded-xl
-p-5
-">
+  <div
+    className="
+      mt-6
+      bg-slate-900/70
+      border border-slate-700
+      rounded-xl
+      p-5
+    "
+  >
 
+```
 <h3 className="font-semibold mb-4">
-{editingId ? "Modifier appareil" : "Nouvel appareil"}
+  {editingId ? "Modifier appareil" : "Nouvel appareil"}
 </h3>
 
 <div className="grid gap-4">
 
-<input
-className="
-bg-slate-800
-border border-slate-700
-rounded-lg
-p-3
-"
-placeholder="Nom"
-value={form.name}
-onChange={(e)=>
-setForm({
-...form,
-name:e.target.value
-})
-}
-/>
+  {/* NAME */}
 
-<input
-  className="
-  bg-slate-800
-  border border-slate-700
-  rounded-lg
-  p-3
-  "
-  placeholder="Description"
-  value={form.description}
-  onChange={(e) =>
-    setForm({
-      ...form,
-      description: e.target.value,
-    })
-  }
-/>
-
-<input
-className="
-bg-slate-800
-border border-slate-700
-rounded-lg
-p-3
-"
-placeholder="Entity ID Home Assistant"
-value={form.entityId}
-onChange={(e)=>
-setForm({
-...form,
-entityId:e.target.value
-})
-}
-/>
-<input
-className="
-bg-slate-800
-border border-slate-700
-rounded-lg
-p-3
-"
-placeholder="Status Entity ID (optional)"
-value={form.statusEntity}
-onChange={(e)=>
-setForm({
-...form,
-statusEntity:e.target.value
-})
-}
-/>
+  <input
+    className="
+      bg-slate-800
+      border border-slate-700
+      rounded-lg
+      p-3
+    "
+    placeholder="Nom"
+    value={form.name}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        name: e.target.value
+      })
+    }
+  />
 
 
-<select
-className="
-bg-slate-800
-border border-slate-700
-rounded-lg
-p-3
-"
-value={form.cardType}
-onChange={(e)=>
-setForm({
-...form,
-cardType:e.target.value
-})
-}
->
+  {/* DESCRIPTION */}
 
-<option value="device">
-Device
-</option>
-
-<option value="binary">
-Binary
-</option>
-
-<option value="rollerShutter">
-Roller shutter
-</option>
-
-<option value="sensor">
-Sensor
-</option>
-
-</select>
+  <input
+    className="
+      bg-slate-800
+      border border-slate-700
+      rounded-lg
+      p-3
+    "
+    placeholder="Description"
+    value={form.description}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        description: e.target.value
+      })
+    }
+  />
 
 
-<div>
-<div className="mt-2">
+  {/* ENTITY */}
 
-  <p className="mb-3 text-sm font-medium text-slate-300">
-    Valeurs d'état
-  </p>
-
-  <div className="grid gap-4">
-
-    <div>
-      <label className="block mb-2 text-sm text-green-400">
-        Valeur verte (état actif)
-      </label>
-
-      <input
-        className="
-          w-full
-          bg-slate-800
-          border border-slate-700
-          rounded-lg
-          p-3
-        "
-        placeholder="Ex : Ouvert"
-        value={form.statusTrue}
-        onChange={(e)=>
-          setForm({
-            ...form,
-            statusTrue:e.target.value
-          })
-        }
-      />
-    </div>
+  <input
+    className="
+      bg-slate-800
+      border border-slate-700
+      rounded-lg
+      p-3
+    "
+    placeholder="Entity ID Home Assistant"
+    value={form.entityId}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        entityId: e.target.value
+      })
+    }
+  />
 
 
-    <div className="mb-6">
-      <label className="block mb-2 text-sm text-red-400">
-        Valeur rouge (état inactif)
-      </label>
+  {/* STATUS ENTITY */}
 
-      <input
-        className="
-          w-full
-          bg-slate-800
-          border border-slate-700
-          rounded-lg
-          p-3
-        "
-        placeholder="Ex : Fermé"
-        value={form.statusFalse}
-        onChange={(e)=>
-          setForm({
-            ...form,
-            statusFalse:e.target.value
-          })
-        }
-      />
+  <input
+    className="
+      bg-slate-800
+      border border-slate-700
+      rounded-lg
+      p-3
+    "
+    placeholder="Status Entity ID (optional)"
+    value={form.statusEntity}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        statusEntity: e.target.value
+      })
+    }
+  />
+
+
+  {/* CARD TYPE */}
+
+  <select
+    className="
+      bg-slate-800
+      border border-slate-700
+      rounded-lg
+      p-3
+    "
+    value={form.cardType}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        cardType: e.target.value
+      })
+    }
+  >
+    <option value="device">
+      Device
+    </option>
+
+    <option value="binary">
+      Binary
+    </option>
+
+    <option value="rollerShutter">
+      Roller shutter
+    </option>
+
+    <option value="sensor">
+      Sensor
+    </option>
+  </select>
+
+
+  {/* ICON */}
+
+  <div>
+
+    <label className="block mb-2 text-sm text-slate-300">
+      Icône
+    </label>
+
+    <select
+      className="
+        w-full
+        bg-slate-800
+        border border-slate-700
+        rounded-lg
+        p-3
+      "
+      value={form.icon}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          icon: e.target.value
+        })
+      }
+    >
+
+      {iconOptions.map((option) => (
+
+        <option
+          key={option.value}
+          value={option.value}
+        >
+          {option.label}
+        </option>
+
+      ))}
+
+    </select>
+
+
+    {(() => {
+
+      const selected =
+        iconOptions.find(
+          (option) =>
+            option.value === form.icon
+        );
+
+      if (!selected) {
+        return null;
+      }
+
+      const Icon = selected.icon;
+
+      return (
+
+        <div
+          className="
+            mt-3
+            flex
+            items-center
+            gap-3
+            text-slate-300
+          "
+        >
+
+          <div
+            className="
+              p-2
+              rounded-lg
+              bg-slate-800
+              border
+              border-slate-700
+            "
+          >
+
+            <Icon size={22} />
+
+          </div>
+
+          <span className="text-sm">
+            Aperçu : {selected.label}
+          </span>
+
+        </div>
+
+      );
+
+    })()}
+
+  </div>
+
+
+  {/* STATUS VALUES */}
+
+  <div className="mt-2">
+
+    <p className="mb-3 text-sm font-medium text-slate-300">
+      Valeurs d'état
+    </p>
+
+    <div className="grid gap-4">
+
+      <div>
+
+        <label className="block mb-2 text-sm text-green-400">
+          Valeur verte (état actif)
+        </label>
+
+        <input
+          className="
+            w-full
+            bg-slate-800
+            border border-slate-700
+            rounded-lg
+            p-3
+          "
+          placeholder="Ex : Ouvert"
+          value={form.statusTrue}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              statusTrue: e.target.value
+            })
+          }
+        />
+
+      </div>
+
+
+      <div>
+
+        <label className="block mb-2 text-sm text-red-400">
+          Valeur rouge (état inactif)
+        </label>
+
+        <input
+          className="
+            w-full
+            bg-slate-800
+            border border-slate-700
+            rounded-lg
+            p-3
+          "
+          placeholder="Ex : Fermé"
+          value={form.statusFalse}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              statusFalse: e.target.value
+            })
+          }
+        />
+
+      </div>
+
     </div>
 
   </div>
 
+
+  {/* ZONES */}
+
+  <div>
+
+    <p className="mb-2 text-sm text-slate-400">
+      Zones
+    </p>
+
+    <div className="grid grid-cols-2 gap-2">
+
+      {zones.map((zone) => (
+
+        <label
+          key={zone.id}
+          className="
+            flex
+            items-center
+            gap-2
+            bg-slate-800
+            p-2
+            rounded-lg
+          "
+        >
+
+          <input
+            type="checkbox"
+            checked={
+              form.zones.includes(zone.id)
+            }
+            onChange={(e) => {
+
+              if (e.target.checked) {
+
+                setForm({
+                  ...form,
+                  zones: [
+                    ...form.zones,
+                    zone.id
+                  ]
+                });
+
+              } else {
+
+                setForm({
+                  ...form,
+                  zones:
+                    form.zones.filter(
+                      (z) => z !== zone.id
+                    )
+                });
+
+              }
+
+            }}
+          />
+
+          {zone.label}
+
+        </label>
+
+      ))}
+
+    </div>
+
+  </div>
+
+
+  {/* SAVE */}
+
+  <button
+    onClick={saveDevice}
+    className="
+      mt-5
+      px-5
+      py-3
+      bg-green-600
+      hover:bg-green-500
+      rounded-lg
+      font-semibold
+    "
+  >
+    {editingId
+      ? "Enregistrer modifications"
+      : "Enregistrer"}
+  </button>
+
 </div>
+```
 
-<p className="mb-2 text-sm text-slate-400">
-Zones
-</p>
-
-
-<div className="grid grid-cols-2 gap-2">
-
-{zones.map((zone)=>(
-
-<label
-key={zone.id}
-className="
-flex
-items-center
-gap-2
-bg-slate-800
-p-2
-rounded-lg
-"
->
-
-<input
-type="checkbox"
-
-checked={
-form.zones.includes(zone.id)
-}
-
-onChange={(e)=>{
-
-if(e.target.checked){
-
-setForm({
-...form,
-zones:[
- ...form.zones,
- zone.id
-]
-});
-
-}else{
-
-setForm({
-...form,
-zones:
-form.zones.filter(
-(z)=>z!==zone.id
-)
-});
-
-}
-
-}}
-
-/>
-
-{zone.label}
-
-</label>
-
-))}
-<button
-onClick={saveDevice}
-className="
-mt-5
-px-5
-py-3
-bg-green-600
-hover:bg-green-500
-rounded-lg
-font-semibold
-"
->
-{editingId ? "Enregistrer modifications" : "Enregistrer"}
-</button>
-</div>
-
-</div>
-
-
-</div>
-
-
-</div>
+  </div>
 
 )}
 

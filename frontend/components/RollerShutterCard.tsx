@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpDown, StopCircle } from "lucide-react";
+import { StopCircle } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import ControlCard from "@/components/ControlCard";
 import { useDevices } from "@/context/DeviceContext";
@@ -10,11 +10,13 @@ import { apiFetch } from "@/lib/api";
 
 interface RollerShutterCardProps {
   device: any;
+  icon?: React.ReactNode;
 }
 
 
 export default function RollerShutterCard({
-  device
+  device,
+  icon,
 }: RollerShutterCardProps) {
 
   const { states } = useDevices();
@@ -86,7 +88,7 @@ return (
 <ControlCard
   title={device.name}
   description={device.description}
-  icon={<ArrowUpDown size={20}/>}
+  icon={icon}
   status={`${position}%`}
   statusColor={
     isOpen

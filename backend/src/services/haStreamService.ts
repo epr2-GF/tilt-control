@@ -172,7 +172,8 @@ ws.on("open", () => {
   console.log("🟩 HA websocket connected");
 });
 
-  ws.on("message", (rawMessage: string) => {
+ws.on("message", (rawMessage: string) => {
+
     lastMessageTime = Date.now();
     const msg = JSON.parse(rawMessage);
 
@@ -314,11 +315,17 @@ if (
     }
   });
 
-ws.on("close", () => {
+ws.on("close", (code, reason) => {
 
   connected = false;
 
-  console.warn("⚠️ HA websocket closed");
+  console.warn(
+    "⚠️ HA websocket closed",
+    "code:",
+    code,
+    "reason:",
+    reason?.toString() || "(none)"
+  );
 
   if (healthTimer) {
     clearInterval(healthTimer);
