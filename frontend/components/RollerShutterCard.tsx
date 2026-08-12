@@ -31,12 +31,15 @@ export default function RollerShutterCard({
     door?.attributes?.current_position ?? 0;
 
 
-  const state =
-    door?.state ?? "unknown";
+const state =
+  door?.state ?? "unknown";
 
+const isUnavailable =
+  state === "unknown" ||
+  state === "unavailable";
 
-  const isOpen =
-    position > 0;
+const isOpen =
+  position > 0;
 
 
   const sendCommand = async (service:string) => {
@@ -89,11 +92,17 @@ return (
   title={device.name}
   description={device.description}
   icon={icon}
-  status={`${position}%`}
+  status={
+    isUnavailable
+      ? "Indisponible"
+      : `${position}%`
+  }
   statusColor={
-    isOpen
-      ? "green"
-      : "red"
+    isUnavailable
+      ? "orange"
+      : isOpen
+        ? "green"
+        : "red"
   }
 >
 

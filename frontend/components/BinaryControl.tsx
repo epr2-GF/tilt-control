@@ -42,7 +42,13 @@ export default function BinaryControl({
 
 const statusDevice = states[statusEntity];
 
-const isOn = statusDevice?.state === "on";
+const state = statusDevice?.state;
+
+const isUnavailable =
+  state === "unknown" ||
+  state === "unavailable";
+
+const isOn = state === "on";
 const { showToast } = useToast();
 
 const handleToggle = async () => {
@@ -84,13 +90,25 @@ const handleToggle = async () => {
 
 
   return (
-    <ControlCard
-      title={title}
-      description={description}
-      icon={icon}
-      status={isOn ? onText : offText}
-      statusColor={isOn ? "green" : "red"}
-    >
+<ControlCard
+  title={title}
+  description={description}
+  icon={icon}
+  status={
+    isUnavailable
+      ? "Indisponible"
+      : isOn
+        ? onText
+        : offText
+  }
+  statusColor={
+    isUnavailable
+      ? "orange"
+      : isOn
+        ? "green"
+        : "red"
+  }
+>
       <button
         onClick={handleToggle}
         disabled={isPending}

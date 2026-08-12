@@ -8,7 +8,7 @@ type Props = {
   children: ReactNode;
 
   status?: string;
-  statusColor?: "green" | "red" | "yellow" | "blue" | "gray";
+  statusColor?: "green" | "red" | "orange" | "yellow" | "blue" | "gray";
 };
 
 const statusClasses = {
@@ -17,6 +17,9 @@ const statusClasses = {
 
   red:
     "bg-rose-500/10 border border-rose-500/30 text-rose-400",
+
+  orange:
+  "bg-orange-500/10 border border-orange-500/30 text-orange-400",
 
   yellow:
     "bg-amber-500/10 border border-amber-500/30 text-amber-400",
@@ -31,6 +34,7 @@ const statusClasses = {
 const statusDots = {
   green: "bg-emerald-400",
   red: "bg-rose-500",
+  orange: "bg-orange-400",
   yellow: "bg-amber-400",
   blue: "bg-blue-400",
   gray: "bg-slate-400",
