@@ -16,7 +16,7 @@ type AuthContextType = {
   user: User | null | undefined;
   token: string | null;
   loginUser: (token: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
 
@@ -75,17 +75,33 @@ setUser(me);
   /*
   LOGOUT
   */
-  const logout = ()=>{
+const logout = async () => {
 
-    localStorage.removeItem(
-      "smart-site-token"
+  try {
+
+    await apiFetch(
+      "/session/logout",
+      {
+        method: "POST",
+      }
     );
 
-    setToken(null);
+  } catch (error) {
 
-    setUser(null);
+    // Still complete local logout
+    // if the backend is unavailable.
 
-  };
+  }
+
+  localStorage.removeItem(
+    "smart-site-token"
+  );
+
+  setToken(null);
+
+  setUser(null);
+
+};
 
 
 
