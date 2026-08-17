@@ -10,12 +10,14 @@ import { UtensilsCrossed } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
 import DeviceRenderer from "@/components/DeviceRenderer";
+import { useDevices } from "@/context/DeviceContext";
 
 
 export default function RestaurantPage() {
 
   const router = useRouter();
   const { user } = useAuth();
+  const { refreshStates } = useDevices();
 
   const [devices, setDevices] = useState<any[]>([]);
 
@@ -24,13 +26,12 @@ export default function RestaurantPage() {
     user?.permissions?.zones?.includes("restaurant") ?? false;
 
 
-
   /*
-    LOAD DEVICES ASSIGNED TO RESTAURANT
+    LOAD DEVICES + REFRESH HOME ASSISTANT STATES
   */
   useEffect(() => {
 
-    async function loadDevices(){
+    async function loadDevices() {
 
       try {
 
@@ -38,7 +39,7 @@ export default function RestaurantPage() {
 
 
         const zoneDevices = data.filter(
-          (device:any) =>
+          (device: any) =>
             device.zones.includes("restaurant")
         );
 
@@ -46,7 +47,7 @@ export default function RestaurantPage() {
         setDevices(zoneDevices);
 
 
-      } catch(error){
+      } catch (error) {
 
         console.error(
           "Failed loading restaurant devices",
@@ -59,12 +60,15 @@ export default function RestaurantPage() {
 
 
     if (hasAccess) {
+
       loadDevices();
+
+      refreshStates();
+
     }
 
 
-  }, [hasAccess]);
-
+  }, [hasAccess, refreshStates]);
 
 
   /*
@@ -73,39 +77,55 @@ export default function RestaurantPage() {
   useEffect(() => {
 
     if (user === null) {
+
       router.push("/login");
+
       return;
+
     }
 
 
     if (user && !hasAccess) {
+
       router.push("/");
+
     }
 
 
   }, [user, hasAccess, router]);
 
 
-
+  /*
+    LOADING / ACCESS
+  */
   if (user === undefined) return null;
 
-
   if (!user) return null;
-
 
   if (!hasAccess) return null;
 
 
-
+  /*
+    PAGE
+  */
   return (
 
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-6">
+    <main className="
+      min-h-screen
+      bg-gradient-to-br
+      from-slate-950
+      via-slate-900
+      to-slate-950
+      text-white
+      p-6
+    ">
 
 
       <div className="mb-6">
-        <BackButton />
-      </div>
 
+        <BackButton />
+
+      </div>
 
 
       <ZoneHeader
@@ -115,18 +135,20 @@ export default function RestaurantPage() {
       />
 
 
+      <section className="
+        grid
+        grid-cols-1
+        md:grid-cols-2
+        gap-4
+        mt-6
+      ">
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
-
-        {devices.map((device)=>(
+        {devices.map((device) => (
 
           <DeviceRenderer
-
             key={device.id}
-
             device={device}
-
           />
 
         ))}
@@ -138,4 +160,5 @@ export default function RestaurantPage() {
     </main>
 
   );
+
 }

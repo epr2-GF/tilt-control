@@ -10,12 +10,14 @@ import { Trees } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
 import DeviceRenderer from "@/components/DeviceRenderer";
+import { useDevices } from "@/context/DeviceContext";
 
 
 export default function ExteriorPage() {
 
   const router = useRouter();
   const { user } = useAuth();
+  const { refreshStates } = useDevices();
 
   const [devices, setDevices] = useState<any[]>([]);
 
@@ -24,31 +26,27 @@ export default function ExteriorPage() {
     user?.permissions?.zones?.includes("exterior") ?? false;
 
 
-
   /*
     LOAD DEVICES ASSIGNED TO EXTERIOR
+    AND REFRESH HOME ASSISTANT STATES
   */
   useEffect(() => {
 
-    async function loadDevices(){
+    async function loadDevices() {
 
       try {
 
         const data = await apiFetch("/devices");
 
-
         const zoneDevices = data.filter(
-          (device:any) =>
-            device.zones.includes("exterior")
-            &&
+          (device: any) =>
+            device.zones.includes("exterior") &&
             device.enabled !== false
         );
 
-
         setDevices(zoneDevices);
 
-
-      } catch(error){
+      } catch (error) {
 
         console.error(
           "Failed loading exterior devices",
@@ -61,12 +59,14 @@ export default function ExteriorPage() {
 
 
     if (hasAccess) {
+
       loadDevices();
+
+      refreshStates();
+
     }
 
-
-  }, [hasAccess]);
-
+  }, [hasAccess, refreshStates]);
 
 
   /*
@@ -75,31 +75,44 @@ export default function ExteriorPage() {
   useEffect(() => {
 
     if (user === null) {
+
       router.push("/login");
+
       return;
+
     }
 
 
     if (user && !hasAccess) {
-      router.push("/");
-    }
 
+      router.push("/");
+
+    }
 
   }, [user, hasAccess, router]);
 
 
+  /*
+    LOADING / ACCESS
+  */
+  if (user === undefined) {
+    return null;
+  }
 
-  if (user === undefined) return null;
+  if (!user) {
+    return null;
+  }
+
+  if (!hasAccess) {
+    return null;
+  }
 
 
-  if (!user) return null;
-
-
-  if (!hasAccess) return null;
-
-
-
+  /*
+    PAGE
+  */
   return (
+
     <main className="
       min-h-screen
       bg-gradient-to-br
@@ -112,9 +125,10 @@ export default function ExteriorPage() {
 
 
       <div className="mb-6">
-        <BackButton />
-      </div>
 
+        <BackButton />
+
+      </div>
 
 
       <ZoneHeader
@@ -122,7 +136,6 @@ export default function ExteriorPage() {
         subtitle="Équipements et capteurs extérieurs"
         icon={<Trees size={28} />}
       />
-
 
 
       <section className="
@@ -133,23 +146,20 @@ export default function ExteriorPage() {
         mt-6
       ">
 
-
-        {devices.map((device)=>(
+        {devices.map((device) => (
 
           <DeviceRenderer
-
             key={device.id}
-
             device={device}
-
           />
 
         ))}
-
 
       </section>
 
 
     </main>
+
   );
+
 }

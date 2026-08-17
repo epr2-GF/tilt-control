@@ -10,10 +10,12 @@ import { House } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
 import DeviceRenderer from "@/components/DeviceRenderer";
+import { useDevices } from "@/context/DeviceContext";
 
 export default function LogementDuLacPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { refreshStates } = useDevices();
 
   const [devices, setDevices] = useState<any[]>([]);
 
@@ -21,7 +23,7 @@ export default function LogementDuLacPage() {
     user?.permissions?.zones?.includes("logement-du-lac") ?? false;
 
   /*
-    LOAD DEVICES ASSIGNED TO LOGEMENT DU LAC
+    LOAD DEVICES + REFRESH HOME ASSISTANT STATES
   */
   useEffect(() => {
     async function loadDevices() {
@@ -30,7 +32,6 @@ export default function LogementDuLacPage() {
 
         const zoneDevices = data.filter(
           (device: any) =>
-            device.enabled &&
             device.zones.includes("logement-du-lac")
         );
 
@@ -45,8 +46,9 @@ export default function LogementDuLacPage() {
 
     if (hasAccess) {
       loadDevices();
+      refreshStates();
     }
-  }, [hasAccess]);
+  }, [hasAccess, refreshStates]);
 
   /*
     AUTH + PERMISSION CHECK
@@ -63,7 +65,9 @@ export default function LogementDuLacPage() {
   }, [user, hasAccess, router]);
 
   if (user === undefined) return null;
+
   if (!user) return null;
+
   if (!hasAccess) return null;
 
   return (

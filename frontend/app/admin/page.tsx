@@ -24,6 +24,7 @@ import {
   Ban,
   CheckCircle,
   ArrowLeft,
+  MessageSquare,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -76,6 +77,34 @@ async function loadUsers() {
     console.error("Failed to load users:", err);
   }
 }
+
+{/* SITE MESSAGE */}
+<div className="bg-slate-900 p-4 rounded-xl mb-6 border border-slate-700">
+  <div className="flex items-center justify-between gap-4">
+
+    <div className="flex items-center gap-3">
+      <MessageSquare className="text-blue-400" />
+
+      <div>
+        <h2 className="font-bold text-white">
+          Message important
+        </h2>
+
+        <p className="text-sm text-slate-400">
+          Message visible par tous les utilisateurs sur l'accueil
+        </p>
+      </div>
+    </div>
+
+    <button
+      onClick={() => router.push("/admin/site-message")}
+      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition"
+    >
+      Modifier
+    </button>
+
+  </div>
+</div>
 
   // -----------------------------
   // CREATE USER

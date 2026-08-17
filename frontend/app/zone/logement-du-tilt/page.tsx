@@ -10,12 +10,14 @@ import { Home } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
 import DeviceRenderer from "@/components/DeviceRenderer";
+import { useDevices } from "@/context/DeviceContext";
 
 
 export default function LogementDuTiltPage() {
 
   const router = useRouter();
   const { user } = useAuth();
+  const { refreshStates } = useDevices();
 
   const [devices, setDevices] = useState<any[]>([]);
 
@@ -24,9 +26,8 @@ export default function LogementDuTiltPage() {
     user?.permissions?.zones?.includes("logement-du-tilt") ?? false;
 
 
-
   /*
-    LOAD DEVICES ASSIGNED TO LOGEMENT DU TILT
+    LOAD DEVICES + REFRESH HOME ASSISTANT STATES
   */
   useEffect(() => {
 
@@ -38,8 +39,7 @@ export default function LogementDuTiltPage() {
 
 
         const zoneDevices = data.filter(
-          (device:any) =>
-            device.enabled &&
+          (device: any) =>
             device.zones.includes("logement-du-tilt")
         );
 
@@ -47,7 +47,7 @@ export default function LogementDuTiltPage() {
         setDevices(zoneDevices);
 
 
-      } catch(error) {
+      } catch (error) {
 
         console.error(
           "Failed loading logement du tilt devices",
@@ -60,12 +60,15 @@ export default function LogementDuTiltPage() {
 
 
     if (hasAccess) {
+
       loadDevices();
+
+      refreshStates();
+
     }
 
 
-  }, [hasAccess]);
-
+  }, [hasAccess, refreshStates]);
 
 
   /*
@@ -74,30 +77,37 @@ export default function LogementDuTiltPage() {
   useEffect(() => {
 
     if (user === null) {
+
       router.push("/login");
+
       return;
+
     }
 
 
     if (user && !hasAccess) {
+
       router.push("/");
+
     }
 
 
   }, [user, hasAccess, router]);
 
 
-
+  /*
+    LOADING / ACCESS
+  */
   if (user === undefined) return null;
 
-
   if (!user) return null;
-
 
   if (!hasAccess) return null;
 
 
-
+  /*
+    PAGE
+  */
   return (
 
     <main className="
@@ -112,21 +122,17 @@ export default function LogementDuTiltPage() {
 
 
       <div className="mb-6">
+
         <BackButton />
+
       </div>
 
 
-
       <ZoneHeader
-
         title="Logement du Tilt"
-
         subtitle="Gestion du logement du Tilt"
-
-        icon={<Home size={28}/>}
-
+        icon={<Home size={28} />}
       />
-
 
 
       <section className="
@@ -138,14 +144,11 @@ export default function LogementDuTiltPage() {
       ">
 
 
-        {devices.map((device)=>(
+        {devices.map((device) => (
 
           <DeviceRenderer
-
             key={device.id}
-
             device={device}
-
           />
 
         ))}

@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useCallback,
   useState,
   useRef,
   ReactNode,
@@ -12,294 +13,224 @@ import {
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "./AuthContext";
 
-
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "/api";
 
-
 type DeviceValue = {
   state: string;
+
   attributes?: {
     current_position?: number;
     [key: string]: any;
   };
 };
 
-
 type DeviceStates = {
   [entityId: string]: DeviceValue;
 };
 
-
 type DeviceContextType = {
   states: DeviceStates;
+  refreshStates: () => Promise<void>;
 };
-
 
 const DeviceContext =
   createContext<DeviceContextType | undefined>(
     undefined
   );
 
-
-
 export function DeviceProvider({
   children,
 }: {
   children: ReactNode;
 }) {
-
-
-  const { user, token } = useAuth();
-
+  const { token } = useAuth();
 
   const [states, setStates] =
     useState<DeviceStates>({});
 
-
-  // Single SSE connection holder
+  // Single global SSE connection
   const eventSourceRef =
     useRef<EventSource | null>(null);
 
+  /*
+    -------------------------------------------------------------
+    REFRESH HOME ASSISTANT STATES
+    -------------------------------------------------------------
+  */
+
+  const refreshStates = useCallback(async () => {
+    try {
+      const data = await apiFetch(
+        "/devices/state"
+      );
+
+      if (!data || typeof data !== "object") {
+        console.error(
+          "Invalid device state response",
+          data
+        );
+
+        return;
+      }
+
+      setStates(data);
+
+    } catch (error) {
+      console.error(
+        "Failed refreshing device states",
+        error
+      );
+    }
+  }, []);
+
+  /*
+    -------------------------------------------------------------
+    GLOBAL SSE CONNECTION
+    -------------------------------------------------------------
+  */
 
   useEffect(() => {
-
-
     const activeToken =
       token ||
-      (typeof window !== "undefined"
-        ? localStorage.getItem(
-            "smart-site-token"
-          )
-        : null);
+      (
+        typeof window !== "undefined"
+          ? localStorage.getItem(
+              "smart-site-token"
+            )
+          : null
+      );
 
-    // Wait until AuthContext has finished restoring session
+    // Wait until AuthContext has restored the session
     if (!activeToken) {
       return;
     }
 
     // Prevent duplicate SSE connections
     if (eventSourceRef.current) {
-
-      console.log(
-        "⚠️ SSE already running"
-      );
-
       return;
     }
 
     /*
-      LOAD INITIAL DEVICE STATES
+      INITIAL STATE LOAD
     */
 
-    async function loadStates() {
-
-      try {
-
-        const data =
-          await apiFetch(
-            "/devices/state"
-          );
-
-
-        setStates(data);
-
-
-      } catch(error) {
-
-
-        console.error(
-          "❌ Failed loading device states",
-          error
-        );
-
-
-      }
-
-    }
-
-
-
-    loadStates();
-
-
-
-
-
+    refreshStates();
 
     /*
-      CREATE SSE CONNECTION
+      CREATE GLOBAL SSE CONNECTION
     */
-
 
     const streamUrl =
       `${API_URL}/devices/stream?token=${encodeURIComponent(
         activeToken
       )}`;
 
-
-
-    console.log(
-      "🔌 Opening global SSE connection"
-    );
-
-
-
     const eventSource =
-      new EventSource(
-        streamUrl
-      );
-
-
+      new EventSource(streamUrl);
 
     eventSourceRef.current =
       eventSource;
 
+    /*
+      RECEIVE LIVE STATE UPDATES
+    */
 
+    eventSource.onmessage =
+      (event) => {
+        try {
+          const update =
+            JSON.parse(event.data);
 
+          const entityId =
+            update.entityId ||
+            update.entity_id;
 
+          if (!entityId) {
+            return;
+          }
 
-    eventSource.onopen = () => {
+          setStates(previous => ({
+            ...previous,
 
+            [entityId]: {
+              ...previous[entityId],
 
-      console.log(
-        "🟢 Global SSE connected"
-      );
+              state:
+                update.state,
 
+              attributes:
+                update.attributes ??
+                previous[entityId]?.attributes,
+            },
+          }));
 
-    };
-
-eventSource.onmessage = (event) => {
-  try {
-    const update = JSON.parse(event.data);
-
-    const entityId =
-      update.entityId ||
-      update.entity_id;
-
-    if (!entityId) {
-      return;
-    }
-
-    setStates(previous => ({
-      ...previous,
-
-      [entityId]: {
-        ...previous[entityId],
-        state: update.state,
-        attributes:
-          update.attributes ??
-          previous[entityId]?.attributes,
-      },
-    }));
-
-  } catch (error) {
-
-    console.error(
-      "❌ SSE parse error",
-      error
-    );
-
-  }
-};
-
-
-
-
-
-
-    eventSource.onerror =
-      () => {
-
-
-        console.warn(
-          "⚠️ Global SSE error",
-          eventSource.readyState
-        );
-
-
+        } catch (error) {
+          console.error(
+            "SSE parse error",
+            error
+          );
+        }
       };
 
+    /*
+      SSE ERROR
 
+      Do not log normal browser SSE reconnect
+      warnings here. EventSource will automatically
+      attempt to reconnect.
+    */
 
+    eventSource.onerror = () => {
+      // EventSource automatically handles reconnection.
+    };
 
-
-
+    /*
+      CLEANUP
+    */
 
     return () => {
-
-
-      console.log(
-        "🔌 Closing global SSE"
-      );
-
-
-
       eventSource.close();
-
 
       eventSourceRef.current =
         null;
-
-
     };
 
+  }, [token, refreshStates]);
 
-
-  }, [token]);
-
-
-
-
-
-
+  /*
+    -------------------------------------------------------------
+    PROVIDER
+    -------------------------------------------------------------
+  */
 
   return (
-
     <DeviceContext.Provider
-
       value={{
-        states
+        states,
+        refreshStates,
       }}
-
     >
-
       {children}
-
     </DeviceContext.Provider>
-
-
   );
-
 }
 
-
-
-
-
-
+/*
+  ---------------------------------------------------------------
+  USE DEVICES HOOK
+  ---------------------------------------------------------------
+*/
 
 export function useDevices() {
-
-
   const context =
-    useContext(
-      DeviceContext
-    );
-
-
+    useContext(DeviceContext);
 
   if (!context) {
-
     throw new Error(
       "useDevices must be used inside DeviceProvider"
     );
-
   }
 
-
-
   return context;
-
-
 }

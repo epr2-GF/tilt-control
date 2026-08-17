@@ -4,89 +4,128 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
-import { Building2, ArrowRightLeft, Warehouse } from "lucide-react";
+
+import { Building2 } from "lucide-react";
 
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
 import DeviceRenderer from "@/components/DeviceRenderer";
+import { useDevices } from "@/context/DeviceContext";
 
 
 export default function TiltPage() {
 
   const router = useRouter();
   const { user } = useAuth();
+  const { refreshStates } = useDevices();
+
   const [devices, setDevices] = useState<any[]>([]);
+
+
+  const hasAccess =
+    user?.permissions?.zones?.includes("tilt") ?? false;
+
 
   /*
     AUTH + PERMISSION CHECK
   */
   useEffect(() => {
 
-    if (!user) {
+    if (user === null) {
+
       router.push("/login");
+
       return;
+
     }
 
 
-    const allowed =
-      user.permissions?.zones?.includes("tilt");
+    if (user && !hasAccess) {
 
-
-    if (!allowed) {
       router.push("/");
-    }
-
-  }, [user, router]);
-
-
-useEffect(() => {
-
-  async function loadDevices() {
-
-    try {
-
-      const data = await apiFetch("/devices");
-
-      const zoneDevices = data.filter(
-        (device: any) =>
-          device.zones?.includes("tilt")
-      );
-
-      setDevices(zoneDevices);
-
-    } catch (error) {
-
-      console.error(
-        "Failed loading devices",
-        error
-      );
 
     }
 
-  }
 
-  loadDevices();
-
-}, []);
+  }, [user, hasAccess, router]);
 
 
+  /*
+    LOAD DEVICES + REFRESH HOME ASSISTANT STATES
+  */
+  useEffect(() => {
+
+    async function loadDevices() {
+
+      try {
+
+        const data = await apiFetch("/devices");
+
+
+        const zoneDevices = data.filter(
+          (device: any) =>
+            device.zones?.includes("tilt")
+        );
+
+
+        setDevices(zoneDevices);
+
+
+      } catch (error) {
+
+        console.error(
+          "Failed loading Tilt devices",
+          error
+        );
+
+      }
+
+    }
+
+
+    if (hasAccess) {
+
+      loadDevices();
+
+      refreshStates();
+
+    }
+
+
+  }, [hasAccess, refreshStates]);
+
+
+  /*
+    LOADING / ACCESS
+  */
+  if (user === undefined) return null;
 
   if (!user) return null;
 
-
-  if (!user.permissions?.zones?.includes("tilt")) {
-    return null;
-  }
+  if (!hasAccess) return null;
 
 
+  /*
+    PAGE
+  */
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-6">
+
+    <main className="
+      min-h-screen
+      bg-gradient-to-br
+      from-slate-950
+      via-slate-900
+      to-slate-950
+      text-white
+      p-6
+    ">
 
 
       <div className="mb-6">
-        <BackButton />
-      </div>
 
+        <BackButton />
+
+      </div>
 
 
       <ZoneHeader
@@ -96,23 +135,30 @@ useEffect(() => {
       />
 
 
+      <section className="
+        grid
+        grid-cols-1
+        md:grid-cols-2
+        gap-4
+        mt-6
+      ">
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
+        {devices.map((device) => (
 
-{devices.map((device)=>(
+          <DeviceRenderer
+            key={device.id}
+            device={device}
+          />
 
-<DeviceRenderer
- key={device.id}
- device={device}
-/>
-
-))}
+        ))}
 
 
       </section>
 
 
     </main>
+
   );
+
 }

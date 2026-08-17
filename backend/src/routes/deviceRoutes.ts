@@ -62,7 +62,27 @@ const savedDevice = getDeviceById(Number(deviceId));
 if (!savedDevice) {
 
   return res.status(404).json({
-    error:"Device not found"
+    error: "Device not found"
+  });
+
+}
+
+// Device disabled by administrator
+if (savedDevice.enabled === false) {
+
+  console.log(
+    "🚫 DEVICE DISABLED - COMMAND BLOCKED",
+    {
+      deviceId: savedDevice.id,
+      device: savedDevice.name,
+      user: user.username,
+      action,
+    }
+  );
+
+  return res.status(403).json({
+    code: "DEVICE_DISABLED",
+    message: "Cet appareil est désactivé"
   });
 
 }
