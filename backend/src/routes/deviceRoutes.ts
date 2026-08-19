@@ -1,3 +1,4 @@
+
 import { Router } from "express";
 import { homeAssistantService } from "../services/homeAssistantService";
 import { timeAccessMiddleware } from "../middleware/timeAccessMiddleware";
@@ -11,13 +12,13 @@ import {
   getDevices,
   getDeviceById,
 } from "../services/deviceService";
+import { writeAudit } from "../services/auditService";
 
 const router = Router();
 
-console.log("✅ deviceRoutes loaded");
 /**
  * GET /devices
- * Returns all configured devices
+ * Returns all configured devices.
  */
 router.get("/", (req, res) => {
   res.json(getDevices());
@@ -25,155 +26,212 @@ router.get("/", (req, res) => {
 
 /**
  * POST /devices/trigger
- * Triggers a device state change after checking permissions
+ *
+ * Triggers a device action through the local
+ * Home Assistant instance.
  */
-
 router.post(
   "/trigger",
   timeAccessMiddleware,
   locationMiddleware,
-  async (req,res)=>{
- 
+  async (req, res) => {
     const user = (req as any).user;
 
-console.log("🔐 DEVICE PERMISSION CHECK", {
-  user:user.username,
-  time:user.timeAccessAllowed,
-  location:user.locationAllowed
-});
-
-
-if (user.timeAccessAllowed === false) {
-
-  return res.status(403).json({
-    code:"OUTSIDE_TIME_WINDOW",
-    message:"En dehors des horaires autorisés"
-  });
-
-}
-  try {
-    console.log("Request body:", req.body);
-const { deviceId, action } = req.body;
-
-console.log("Incoming deviceId:", deviceId);
-
-const savedDevice = getDeviceById(Number(deviceId));
-
-if (!savedDevice) {
-
-  return res.status(404).json({
-    error: "Device not found"
-  });
-
-}
-
-// Device disabled by administrator
-if (savedDevice.enabled === false) {
-
-  console.log(
-    "🚫 DEVICE DISABLED - COMMAND BLOCKED",
-    {
-      deviceId: savedDevice.id,
-      device: savedDevice.name,
-      user: user.username,
-      action,
-    }
-  );
-
-  return res.status(403).json({
-    code: "DEVICE_DISABLED",
-    message: "Cet appareil est désactivé"
-  });
-
-}
-
-
-const device = {
-
-  entityId: savedDevice.entityId,
-
-  domain: savedDevice.entityId.split(".")[0]
-
-};
-
-    // 2. Map actions to domain-specific HA actions
-    let haService = action; 
-    
-    // If it's your helper toggle switch, let's make sure it translates cleanly
-    if (device.domain === "input_boolean" && action === "toggle") {
-      haService = "toggle";
+    if (user.timeAccessAllowed === false) {
+      return res.status(403).json({
+        code: "OUTSIDE_TIME_WINDOW",
+        message: "En dehors des horaires autorisés",
+      });
     }
 
-    // 3. Dispatch call to Home Assistant via Nabu Casa tunnel
-    const result = await homeAssistantService.triggerService(
-      device.domain,
-      haService,
-      device.entityId
-    );
+    try {
+      const { deviceId, action } = req.body;
+      const savedDevice = getDeviceById(Number(deviceId));
 
-    return res.json({ success: true, updatedState: result });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || "Failed to execute HA service" });
+      if (!savedDevice) {
+        return res.status(404).json({
+          error: "Device not found",
+        });
+      }
+
+      if (savedDevice.enabled === false) {
+        return res.status(403).json({
+          code: "DEVICE_DISABLED",
+          message: "Cet appareil est désactivé",
+        });
+      }
+
+      const device = {
+        entityId: savedDevice.entityId,
+        domain: savedDevice.entityId.split(".")[0],
+      };
+
+      let haService = action;
+
+      if (
+        device.domain === "input_boolean" &&
+        action === "toggle"
+      ) {
+        haService = "toggle";
+      }
+
+      /*
+       * Confirm the entity exists and then send
+       * the command to the local Home Assistant.
+       *
+       * We deliberately do not check the resulting
+       * device state because devices may be momentary,
+       * contactor controlled or configured with auto-off.
+       */
+      const result =
+        await homeAssistantService.triggerService(
+          device.domain,
+          haService,
+          device.entityId
+        );
+
+      /*
+       * Successful command = yellow audit entry.
+       */
+      writeAudit({
+        severity: "info",
+        event: "DEVICE_CONTROL",
+        actor: user.username,
+        target: savedDevice.name,
+        details: {
+          deviceId: savedDevice.id,
+          entityId: device.entityId,
+          action: haService,
+          result: "success",
+        },
+        role: user.role,
+      });
+
+      return res.json({
+        success: true,
+        updatedState: result,
+      });
+    } catch (error: any) {
+      /*
+       * Record failed device command.
+       */
+      try {
+        const { deviceId, action } = req.body;
+        const failedDevice = getDeviceById(Number(deviceId));
+
+        writeAudit({
+          severity: "warning",
+          event: "DEVICE_CONTROL_FAILED",
+          actor: user?.username,
+          target:
+            failedDevice?.name ||
+            String(deviceId),
+          details: {
+            deviceId,
+            entityId: failedDevice?.entityId,
+            action,
+            result: "failed",
+            error:
+              error?.message ||
+              "Failed to execute HA service",
+          },
+          role: user?.role,
+        });
+      } catch (auditError) {
+        console.error(
+          "Failed writing device audit log",
+          auditError
+        );
+      }
+
+      const message =
+        error?.message ||
+        "Failed to execute HA service";
+
+      /*
+       * Entity does not exist in Home Assistant.
+       */
+      if (
+        message.includes("HA entity not found") ||
+        message.includes("HTTP 404")
+      ) {
+        return res.status(404).json({
+          code: "HA_ENTITY_NOT_FOUND",
+          message:
+            "Appareil introuvable dans Home Assistant",
+        });
+      }
+
+      /*
+       * Home Assistant rejected the command.
+       */
+      return res.status(502).json({
+        code: "HA_COMMAND_FAILED",
+        message:
+          "Home Assistant n'a pas accepté la commande",
+      });
+    }
   }
-});
+);
 
 /**
  * GET /devices/state
- * Returns the latest cached Home Assistant states
+ *
+ * Requests a fresh state update from the local
+ * Home Assistant instance and returns cached states.
  */
 router.get("/state", async (req, res) => {
-
   try {
-
-    // Ask Home Assistant for fresh states
     refreshHAStates();
 
-    // Small delay to allow websocket response
     await new Promise(resolve =>
       setTimeout(resolve, 500)
     );
 
     res.json(getCurrentStates());
-
-  } catch(error) {
-
+  } catch (error) {
     console.error(
       "Failed refreshing HA states",
       error
     );
 
     res.json(getCurrentStates());
-
   }
-
 });
-
 
 /**
  * GET /devices/stream
- * Establishes an HTTP text-stream (SSE) connection for real-time state push notifications
+ *
+ * Establishes an SSE connection between the browser
+ * and backend for real-time Home Assistant updates.
  */
 router.get("/stream", (req, res) => {
+  res.setHeader(
+    "Content-Type",
+    "text/event-stream"
+  );
 
-  // SSE headers
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
+  res.setHeader(
+    "Cache-Control",
+    "no-cache"
+  );
 
-  // Important for Nginx / reverse proxies
-  res.setHeader("X-Accel-Buffering", "no");
+  res.setHeader(
+    "Connection",
+    "keep-alive"
+  );
 
-  // Immediately open stream
+  res.setHeader(
+    "X-Accel-Buffering",
+    "no"
+  );
+
   res.flushHeaders();
 
-  // Send initial comment so connection is active
   res.write(": connected\n\n");
 
-  console.log("📡 SSE stream opened");
-
-  // Register browser client
   registerStreamClient(res);
 });
 
-// ✅ Always keep export default at the absolute bottom of the file
 export default router;
+

@@ -6,10 +6,16 @@ export type Role =
   | "restaurant"
   | "pecheur";
 
+export type UserPermissions = {
+  zones: string[];
+  controls: string[];
+};
+
 export type User = {
   id: string;
   username: string;
   password?: string;
+
   role: Role;
   disabled: boolean;
 
@@ -17,8 +23,5 @@ export type User = {
   accessEnd?: string;
   remoteAccess?: boolean;
 
-  permissions?: {
-    zones: string[];
-    controls: string[];
-  };
+  permissions?: UserPermissions;
 };

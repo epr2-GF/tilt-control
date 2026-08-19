@@ -83,7 +83,52 @@ router.get(
   }
 );
 
+/* =========================================================
+   DELETE /admin/audit
+   ========================================================= */
 
+router.delete(
+  "/audit",
+  authMiddleware,
+  (req, res) => {
+
+    const user = (req as any).user;
+
+    // Superadmin only
+    if (user.role !== "superadmin") {
+      return res.status(403).json({
+        message: "Superadmin access required",
+      });
+    }
+
+    try {
+
+      // Clear the audit log
+      fs.writeFileSync(
+        LOG_FILE,
+        "[]",
+        "utf8"
+      );
+
+      return res.json({
+        success: true,
+        message: "Journal effacé",
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Failed to clear audit log",
+        error
+      );
+
+      return res.status(500).json({
+        message: "Failed to clear audit log",
+      });
+
+    }
+  }
+);
 
 /* =========================================================
    GET /admin/site-message

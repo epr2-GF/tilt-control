@@ -61,50 +61,65 @@ export default function BinaryControl({
   // TOGGLE DEVICE
   // -----------------------------
 
-  const handleToggle = async () => {
 
-    // Never allow commands when disabled
+
+const handleToggle = async () => {
+  if (
+    isPending ||
+    disabled ||
+    isUnavailable
+  ) {
+    return;
+  }
+
+  setIsPending(true);
+
+  try {
+    await triggerDeviceControl(
+      controlId,
+      "toggle"
+    );
+
+    showToast(
+      "Commande envoyée",
+      "success"
+    );
+  } catch (err: any) {
+    const message =
+      err?.message || "";
+
+    /*
+     * Expected Home Assistant entity error.
+     * Don't report this as a frontend console error.
+     */
     if (
-      isPending ||
-      disabled ||
-      isUnavailable
+      message ===
+      "Appareil introuvable dans Home Assistant"
     ) {
-      return;
-    }
-
-    setIsPending(true);
-
-    try {
-
-      await triggerDeviceControl(
-        controlId,
-        "toggle"
-      );
-
       showToast(
-        "Commande envoyée",
-        "success"
+        message,
+        "error"
       );
-
-    } catch (err: any) {
-
+    } else {
       console.error(
         "Failed to control device:",
         err
       );
 
       showToast(
-        err.message ||
+        message ||
           "Erreur lors de la commande",
         "error"
       );
-
-    } finally {
-
-      setIsPending(false);
-
     }
-  };
+  } finally {
+    setIsPending(false);
+  }
+};
+
+
+
+
 
   // -----------------------------
   // CARD

@@ -3,13 +3,23 @@ import path from "path";
 
 
 const LOG_FILE =
-  path.join(__dirname,"../data/auditLog.json");
+  path.join(__dirname, "../data/auditLog.json");
 
 
-interface AuditEntry {
+export type AuditEntry = {
+
   time: string;
 
-  severity: "info" | "warning" | "error" | "admin";
+  severity:
+    | "info"
+    | "warning"
+    | "error"
+    | "admin";
+
+  type?:
+    | "login"
+    | "device_control"
+    | "admin";
 
   event: string;
 
@@ -17,22 +27,28 @@ interface AuditEntry {
 
   target?: string;
 
-  details?: Record<string, unknown> | string;
+  details?:
+    Record<string, unknown> | string;
 
   role?: string;
 
   ip?: string;
-}
+
+  device?: string;
+
+  action?: string;
+
+};
 
 
+function ensureFile() {
 
-function ensureFile(){
-
-  if(!fs.existsSync(LOG_FILE)){
+  if (!fs.existsSync(LOG_FILE)) {
 
     fs.writeFileSync(
       LOG_FILE,
-      JSON.stringify([],null,2)
+      JSON.stringify([], null, 2),
+      "utf8"
     );
 
   }
@@ -40,18 +56,30 @@ function ensureFile(){
 }
 
 
-
 export function writeAudit(
-  entry: Omit<AuditEntry,"time">
-){
+  entry: Omit<AuditEntry, "time">
+) {
 
   ensureFile();
 
 
-  const logs:AuditEntry[] =
-    JSON.parse(
-      fs.readFileSync(LOG_FILE,"utf8")
+  let logs: AuditEntry[] = [];
+
+
+  try {
+
+    logs = JSON.parse(
+      fs.readFileSync(
+        LOG_FILE,
+        "utf8"
+      )
     );
+
+  } catch {
+
+    logs = [];
+
+  }
 
 
   const now =
@@ -60,33 +88,44 @@ export function writeAudit(
 
   logs.push({
 
-    time:now.toISOString(),
+    time:
+      now.toISOString(),
 
-    ...entry
+    ...entry,
 
   });
 
 
+  /*
+    Keep only the last 72 hours
+  */
 
   const cutoff =
-    now.getTime()
-    -
-    (72 * 60 * 60 * 1000);
+    now.getTime() -
+    72 * 60 * 60 * 1000;
 
 
-
-  const filtered =
+  logs =
     logs.filter(
       log =>
-      new Date(log.time).getTime()
-      >
-      cutoff
+        new Date(
+          log.time
+        ).getTime() > cutoff
     );
 
 
   fs.writeFileSync(
+
     LOG_FILE,
-    JSON.stringify(filtered,null,2)
+
+    JSON.stringify(
+      logs,
+      null,
+      2
+    ),
+
+    "utf8"
+
   );
 
 }

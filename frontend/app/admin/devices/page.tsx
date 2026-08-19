@@ -638,24 +638,23 @@ export default function DevicesAdminPage() {
 <button
   onClick={async () => {
     try {
-
-      await apiFetch(`/admin/devices/${device.id}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          ...device,
-          enabled: !device.enabled,
-        }),
-      });
+      await apiFetch(
+        `/admin/devices/${device.id}/enabled`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            enabled: !device.enabled,
+          }),
+        }
+      );
 
       loadDevices();
 
     } catch (error) {
-
       console.error(
         "Failed to change device status",
         error
       );
-
     }
   }}
   className={`

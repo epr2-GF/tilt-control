@@ -123,6 +123,26 @@ return res.json({
 });
 });
 
+/* -----------------------------
+   LOGOUT
+----------------------------- */
+router.post("/logout", authMiddleware, (req, res) => {
+  const user = (req as any).user;
+
+  if (user) {
+    writeAudit({
+      severity: "info",
+      event: "LOGOUT",
+      actor: user.username,
+      role: user.role,
+    });
+  }
+
+  return res.json({
+    success: true,
+  });
+});
+
 router.get("/me", authMiddleware, (req, res) => {
 
   const users = readUsers();

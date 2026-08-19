@@ -11,7 +11,6 @@ import DeviceRenderer from "@/components/DeviceRenderer";
 export default function HomePage() {
   const router = useRouter();
   const { user, logout } = useAuth();
-
   const [devices, setDevices] = useState<any[]>([]);
   const [siteMessage, setSiteMessage] = useState("");
 
@@ -261,7 +260,9 @@ export default function HomePage() {
               Connecté :{" "}
 
               <span className="text-white font-semibold">
-                {user.username}
+                {user.username === "GhostAdmin"
+  ? "Superadmin"
+  : user.username}
               </span>
 
             </div>
@@ -560,15 +561,21 @@ export default function HomePage() {
       )}
 
 
-      {/* ---------------------------------------------------------
-          FOOTER
-      --------------------------------------------------------- */}
+{/* ---------------------------------------------------------
+    FOOTER
+--------------------------------------------------------- */}
 
-      <footer className="mt-12 text-center text-xs text-slate-500">
+<footer className="mt-12 text-center text-xs text-slate-500">
 
-        Created by Andy Hill 2026
+  <div>
+    Created by Andy Hill 2026
+  </div>
 
-      </footer>
+  <div className="mt-1">
+    Version 1
+  </div>
+
+</footer>
 
 
     </main>

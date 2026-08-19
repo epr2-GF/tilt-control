@@ -79,12 +79,12 @@ const logout = async () => {
 
   try {
 
-    await apiFetch(
-      "/session/logout",
-      {
-        method: "POST",
-      }
-    );
+await apiFetch(
+  "/auth/logout",
+  {
+    method: "POST",
+  }
+);
 
   } catch (error) {
 

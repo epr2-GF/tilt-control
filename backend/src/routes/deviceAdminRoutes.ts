@@ -131,19 +131,26 @@ router.patch("/:id/enabled", async (req, res) => {
   reloadDeviceEntities();
   await refreshCurrentStates();
 
-  writeAudit({
-    severity: enabled ? "info" : "warning",
-    event: enabled
-      ? "DEVICE_ENABLED"
-      : "DEVICE_DISABLED",
-    actor: (req as any).user.username,
-    details: {
-      id: device.id,
-      name: device.name,
-      entityId: device.entityId,
-      enabled,
-    },
-  });
+writeAudit({
+  severity: enabled ? "info" : "warning",
+
+  event: enabled
+    ? "DEVICE_ENABLED"
+    : "DEVICE_DISABLED",
+
+  actor: (req as any).user.username,
+
+  target: device.name,
+
+  role: (req as any).user.role,
+
+  details: {
+    id: device.id,
+    name: device.name,
+    entityId: device.entityId,
+    enabled,
+  },
+});
 
   return res.json(updatedDevice);
 });
