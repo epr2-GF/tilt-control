@@ -35,10 +35,11 @@ export async function apiFetch(
   const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
-  const res = await fetch(`${baseUrl}${cleanEndpoint}`, {
-    ...options,
-    headers,
-  });
+const res = await fetch(`${baseUrl}${cleanEndpoint}`, {
+  ...options,
+  headers,
+  cache: "no-store",
+});
 
 /* -----------------------------
       AUTH HANDLING (FIXED origin loop check)

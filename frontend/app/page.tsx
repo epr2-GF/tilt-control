@@ -25,52 +25,76 @@ export default function HomePage() {
   }, [user]);
 
 
-  /* -------------------------------------------------------------
-      LOAD HOME DEVICES
-  ------------------------------------------------------------- */
+/* -------------------------------------------------------------
+    LOAD HOME DEVICES
+------------------------------------------------------------- */
 
-  useEffect(() => {
+useEffect(() => {
 
-    async function loadDevices() {
+  async function loadDevices() {
 
-      try {
+    try {
 
-        const data = await apiFetch("/devices");
+      const data = await apiFetch("/devices");
 
-        if (!Array.isArray(data)) {
-
-          console.error(
-            "Device API did not return an array:",
-            data
-          );
-
-          return;
-        }
-
-        const homeDevices = data.filter(
-          (device: any) =>
-            device.zones?.includes("accueil")
-        );
-
-        setDevices(homeDevices);
-
-      } catch (error) {
+      if (!Array.isArray(data)) {
 
         console.error(
-          "Failed loading home devices",
-          error
+          "Device API did not return an array:",
+          data
         );
 
+        return;
       }
+
+      const homeDevices = data.filter(
+        (device: any) =>
+          device.zones?.includes("accueil")
+      );
+
+      setDevices(homeDevices);
+
+    } catch (error) {
+
+      console.error(
+        "Failed loading home devices",
+        error
+      );
 
     }
 
-    if (user) {
+  }
+
+  if (user) {
+    loadDevices();
+  }
+
+  const handleVisibilityChange = () => {
+
+    if (
+      document.visibilityState === "visible" &&
+      user
+    ) {
       loadDevices();
     }
 
-  }, [user]);
+  };
 
+  document.addEventListener(
+    "visibilitychange",
+    handleVisibilityChange
+  );
+
+  return () => {
+
+    document.removeEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+  };
+
+}, [user]);
 
   /* -------------------------------------------------------------
       LOAD IMPORTANT SITE MESSAGE

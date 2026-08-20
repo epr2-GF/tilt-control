@@ -515,6 +515,7 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
   }
 />
       <div className="mt-6 space-y-6">
+
         {Object.entries(groupedLogs).length === 0 ? (
           <div className="text-slate-500 text-sm">
             Aucun événement durant les
@@ -523,7 +524,10 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
         ) : (
           Object.entries(groupedLogs).map(
             ([date, dateLogs]) => (
+
               <section key={date}>
+
+                {/* DATE */}
                 <div className="
                   text-xs
                   uppercase
@@ -536,6 +540,7 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
                   {date}
                 </div>
 
+                {/* LOG CONTAINER */}
                 <div className="
                   bg-slate-900/60
                   border
@@ -543,8 +548,10 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
                   rounded-lg
                   overflow-hidden
                 ">
+
                   {dateLogs.map(
                     (log, index) => {
+
                       const style =
                         getLogStyle(log);
 
@@ -564,23 +571,28 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
                           key={`${log.time}-${index}`}
                           className="
                             flex
-                            items-center
+                            items-start
                             gap-2
                             min-h-[34px]
                             px-3
+                            py-2
                             border-b
                             border-slate-800/70
                             last:border-b-0
                             text-xs
                           "
                         >
+
+                          {/* ICON */}
                           <div className="
                             w-4
                             flex-shrink-0
+                            pt-0.5
                           ">
                             {style.icon}
                           </div>
 
+                          {/* TIME */}
                           <div className="
                             w-[42px]
                             flex-shrink-0
@@ -590,39 +602,50 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
                             {time}
                           </div>
 
-             <div className="
-  w-[80px]
-  flex-shrink-0
-  text-slate-300
-  truncate
-  font-medium
-">
-  {log.actor === "GhostAdmin" ||
-  log.role === "superadmin"
-    ? "Superadmin"
-    : log.actor || "—"}
-</div>
+                          {/* ACTOR */}
+                          <div className="
+                            w-[55px]
+                            sm:w-[80px]
+                            flex-shrink-0
+                            text-slate-300
+                            truncate
+                            font-medium
+                          ">
+                            {log.actor === "GhostAdmin" ||
+                            log.role === "superadmin"
+                              ? "Superadmin"
+                              : log.actor || "—"}
+                          </div>
 
+                          {/* DESCRIPTION */}
                           <div
                             className={`
                               flex-1
-                              truncate
+                              min-w-0
+                              whitespace-normal
+                              break-words
+                              leading-tight
                               ${style.color}
                             `}
                           >
                             {getDescription(log)}
                           </div>
+
                         </div>
                       );
+
                     }
                   )}
+
                 </div>
+
               </section>
+
             )
           )
         )}
-      </div>
 
+      </div>
 {showClearConfirm && (
   <div
     className="

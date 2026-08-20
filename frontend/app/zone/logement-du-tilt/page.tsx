@@ -31,41 +31,29 @@ export default function LogementDuTiltPage() {
   */
   useEffect(() => {
 
-    async function loadDevices() {
+async function loadDevices() {
+  try {
+    const data = await apiFetch("/devices");
 
-      try {
+    const zoneDevices = data.filter(
+      (device: any) =>
+        device.zones?.includes("logement-du-tilt") &&
+        device.enabled !== false
+    );
 
-        const data = await apiFetch("/devices");
+    setDevices(zoneDevices);
+  } catch (error) {
+    console.error(
+      "Failed loading logement du tilt devices",
+      error
+    );
+  }
+}
 
-
-        const zoneDevices = data.filter(
-          (device: any) =>
-            device.zones.includes("logement-du-tilt")
-        );
-
-
-        setDevices(zoneDevices);
-
-
-      } catch (error) {
-
-        console.error(
-          "Failed loading logement du tilt devices",
-          error
-        );
-
-      }
-
-    }
-
-
-    if (hasAccess) {
-
-      loadDevices();
-
-      refreshStates();
-
-    }
+if (hasAccess) {
+  loadDevices();
+  refreshStates();
+}
 
 
   }, [hasAccess, refreshStates]);

@@ -32,22 +32,57 @@ export default function Epr2Page() {
       try {
         const data = await apiFetch("/devices");
 
+        if (!Array.isArray(data)) {
+          console.error(
+            "Device API did not return an array:",
+            data
+          );
+          return;
+        }
+
         const zoneDevices = data.filter(
           (device: any) =>
             device.zones?.includes("epr2")
         );
 
         setDevices(zoneDevices);
+
+        // Refresh current Home Assistant states
+        // whenever devices are loaded.
+        await refreshStates();
       } catch (error) {
-        console.error("Failed loading EPR2 devices", error);
+        console.error(
+          "Failed loading EPR2 devices",
+          error
+        );
       }
     }
 
+    // Initial load when entering the zone.
     loadDevices();
 
-    // Refresh Home Assistant states whenever
-    // the zone page is opened.
-    refreshStates();
+    // Refresh devices and Home Assistant states
+    // whenever the page/app becomes visible again.
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "visible" &&
+        hasAccess
+      ) {
+        loadDevices();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
   }, [hasAccess, refreshStates]);
 
   /*
