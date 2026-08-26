@@ -10,11 +10,23 @@ export interface Device {
 
   statusEntity?: string;
 
-  cardType:
-    | "device"
-    | "binary"
-    | "rollerShutter"
-    | "sensor";
+  /*
+   * Optional entities used by the On / Off card.
+   *
+   * button1Entity = entity controlled by the green / ON button
+   * button2Entity = entity controlled by the red / OFF button
+   */
+  button1Entity?: string;
+
+  button2Entity?: string;
+
+cardType:
+  | "device"
+  | "binary"
+  | "rollerShutter"
+  | "sensor"
+  | "onOff"
+  | "lock";
 
   statusTrue?: string;
 

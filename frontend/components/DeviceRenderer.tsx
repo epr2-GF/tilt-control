@@ -3,7 +3,8 @@
 import BinaryControl from "@/components/BinaryControl";
 import RollerShutterCard from "@/components/RollerShutterCard";
 import SensorCard from "@/components/SensorCard";
-
+import OnOffCard from "@/components/OnOffCard";
+import LockCard from "@/components/LockCard";
 import { useDevices } from "@/context/DeviceContext";
 
 import {
@@ -78,12 +79,30 @@ export default function DeviceRenderer({
   /*
    * Device is considered disabled when enabled is explicitly false.
    *
-   * This means older devices that don't have the enabled property
-   * will continue to work normally.
+   * Older devices without the enabled property
+   * continue to work normally.
    */
   const disabled = device.enabled === false;
 
   switch (device.cardType) {
+case "lock":
+  return (
+    <div
+      key={device.id}
+      className={
+        disabled
+          ? "bg-orange-950/30 border border-orange-700/60 rounded-xl p-1"
+          : ""
+      }
+    >
+      <LockCard
+        device={device}
+        icon={icon}
+        disabled={disabled}
+      />
+    </div>
+  );
+
     case "rollerShutter":
       return (
         <div
@@ -186,6 +205,38 @@ export default function DeviceRenderer({
               "OFF"
             }
             buttonText="Commander"
+            disabled={disabled}
+          />
+        </div>
+      );
+
+    /*
+     * ON / OFF CARD
+     *
+     * button1Entity = ON command
+     * button2Entity = OFF command
+     *
+     * These are deliberately separate from statusEntity.
+     */
+    case "onOff":
+      return (
+        <div
+          key={device.id}
+          className={
+            disabled
+              ? "bg-orange-950/30 border border-orange-700/60 rounded-xl p-1"
+              : ""
+          }
+        >
+          <OnOffCard
+            device={device}
+            icon={icon}
+            statusEntity={
+              device.statusEntity ||
+              device.entityId
+            }
+            onEntity={device.button1Entity}
+            offEntity={device.button2Entity}
             disabled={disabled}
           />
         </div>

@@ -1,23 +1,26 @@
-
 import { Router } from "express";
 import { homeAssistantService } from "../services/homeAssistantService";
 import { timeAccessMiddleware } from "../middleware/timeAccessMiddleware";
 import { locationMiddleware } from "../middleware/locationMiddleware";
+
 import {
   registerStreamClient,
   getCurrentStates,
   refreshHAStates,
 } from "../services/haStreamService";
+
 import {
   getDevices,
   getDeviceById,
 } from "../services/deviceService";
+
 import { writeAudit } from "../services/auditService";
 
 const router = Router();
 
 /**
  * GET /devices
+ *
  * Returns all configured devices.
  */
 router.get("/", (req, res) => {
@@ -27,8 +30,16 @@ router.get("/", (req, res) => {
 /**
  * POST /devices/trigger
  *
- * Triggers a device action through the local
- * Home Assistant instance.
+ * Triggers a device action through Home Assistant.
+ *
+ * Normal devices:
+ *   entityId + requested action are used.
+ *
+ * ON/OFF devices:
+ *   "on"  -> button1Entity
+ *   "off" -> button2Entity
+ *
+ * The ON/OFF card deliberately does NOT use toggle.
  */
 router.post(
   "/trigger",
@@ -46,7 +57,10 @@ router.post(
 
     try {
       const { deviceId, action } = req.body;
-      const savedDevice = getDeviceById(Number(deviceId));
+
+      const savedDevice = getDeviceById(
+        Number(deviceId)
+      );
 
       if (!savedDevice) {
         return res.status(404).json({
@@ -61,49 +75,121 @@ router.post(
         });
       }
 
-      const device = {
-        entityId: savedDevice.entityId,
-        domain: savedDevice.entityId.split(".")[0],
-      };
+      /*
+       * ---------------------------------------------------------
+       * DETERMINE ENTITY + SERVICE
+       * ---------------------------------------------------------
+       */
 
+      let entityId = savedDevice.entityId;
       let haService = action;
 
+      /*
+       * ON / OFF CARD
+       *
+       * Green button:
+       *   action = "on"
+       *   -> button1Entity
+       *
+       * Red button:
+       *   action = "off"
+       *   -> button2Entity
+       */
+      if (savedDevice.cardType === "onOff") {
+        if (action === "on") {
+          if (!savedDevice.button1Entity) {
+            return res.status(400).json({
+              code: "ON_ENTITY_NOT_CONFIGURED",
+              message:
+                "L'entité du bouton ON n'est pas configurée",
+            });
+          }
+
+          entityId =
+            savedDevice.button1Entity;
+
+          haService = "turn_on";
+
+        } else if (action === "off") {
+          if (!savedDevice.button2Entity) {
+            return res.status(400).json({
+              code: "OFF_ENTITY_NOT_CONFIGURED",
+              message:
+                "L'entité du bouton OFF n'est pas configurée",
+            });
+          }
+
+          entityId =
+            savedDevice.button2Entity;
+
+          haService = "turn_off";
+
+        } else {
+          return res.status(400).json({
+            code: "INVALID_ONOFF_ACTION",
+            message:
+              "Action invalide pour une carte ON/OFF",
+          });
+        }
+      }
+
+      /*
+       * ---------------------------------------------------------
+       * HOME ASSISTANT DOMAIN
+       * ---------------------------------------------------------
+       */
+
+      const domain =
+        entityId.split(".")[0];
+
+      /*
+       * Existing input_boolean behaviour.
+       *
+       * Normal binary/device cards can use toggle.
+       *
+       * ON/OFF cards never enter this branch.
+       */
       if (
-        device.domain === "input_boolean" &&
+        savedDevice.cardType !== "onOff" &&
+        domain === "input_boolean" &&
         action === "toggle"
       ) {
         haService = "toggle";
       }
 
       /*
-       * Confirm the entity exists and then send
-       * the command to the local Home Assistant.
-       *
-       * We deliberately do not check the resulting
-       * device state because devices may be momentary,
-       * contactor controlled or configured with auto-off.
+       * ---------------------------------------------------------
+       * SEND COMMAND TO HOME ASSISTANT
+       * ---------------------------------------------------------
        */
+
       const result =
         await homeAssistantService.triggerService(
-          device.domain,
+          domain,
           haService,
-          device.entityId
+          entityId
         );
 
       /*
-       * Successful command = yellow audit entry.
+       * ---------------------------------------------------------
+       * AUDIT SUCCESS
+       * ---------------------------------------------------------
        */
+
       writeAudit({
         severity: "info",
         event: "DEVICE_CONTROL",
         actor: user.username,
         target: savedDevice.name,
+
         details: {
           deviceId: savedDevice.id,
-          entityId: device.entityId,
+          entityId,
           action: haService,
+          cardType: savedDevice.cardType,
           result: "success",
         },
+
         role: user.role,
       });
 
@@ -111,32 +197,72 @@ router.post(
         success: true,
         updatedState: result,
       });
+
     } catch (error: any) {
+
       /*
-       * Record failed device command.
+       * ---------------------------------------------------------
+       * FAILED COMMAND AUDIT
+       * ---------------------------------------------------------
        */
+
       try {
-        const { deviceId, action } = req.body;
-        const failedDevice = getDeviceById(Number(deviceId));
+        const {
+          deviceId,
+          action,
+        } = req.body;
+
+        const failedDevice =
+          getDeviceById(
+            Number(deviceId)
+          );
+
+        let failedEntityId =
+          failedDevice?.entityId;
+
+        /*
+         * Record the actual ON/OFF entity
+         * when applicable.
+         */
+        if (
+          failedDevice?.cardType === "onOff"
+        ) {
+          if (action === "on") {
+            failedEntityId =
+              failedDevice.button1Entity;
+          }
+
+          if (action === "off") {
+            failedEntityId =
+              failedDevice.button2Entity;
+          }
+        }
 
         writeAudit({
           severity: "warning",
           event: "DEVICE_CONTROL_FAILED",
+
           actor: user?.username,
+
           target:
             failedDevice?.name ||
             String(deviceId),
+
           details: {
             deviceId,
-            entityId: failedDevice?.entityId,
+            entityId: failedEntityId,
             action,
+            cardType:
+              failedDevice?.cardType,
             result: "failed",
             error:
               error?.message ||
               "Failed to execute HA service",
           },
+
           role: user?.role,
         });
+
       } catch (auditError) {
         console.error(
           "Failed writing device audit log",
@@ -149,11 +275,15 @@ router.post(
         "Failed to execute HA service";
 
       /*
-       * Entity does not exist in Home Assistant.
+       * Home Assistant entity does not exist.
        */
       if (
-        message.includes("HA entity not found") ||
-        message.includes("HTTP 404")
+        message.includes(
+          "HA entity not found"
+        ) ||
+        message.includes(
+          "HTTP 404"
+        )
       ) {
         return res.status(404).json({
           code: "HA_ENTITY_NOT_FOUND",
@@ -177,61 +307,76 @@ router.post(
 /**
  * GET /devices/state
  *
- * Requests a fresh state update from the local
- * Home Assistant instance and returns cached states.
+ * Requests a fresh state update from Home Assistant
+ * and returns the cached states.
  */
-router.get("/state", async (req, res) => {
-  try {
-    refreshHAStates();
+router.get(
+  "/state",
+  async (req, res) => {
+    try {
+      refreshHAStates();
 
-    await new Promise(resolve =>
-      setTimeout(resolve, 500)
-    );
+      await new Promise(
+        resolve =>
+          setTimeout(resolve, 500)
+      );
 
-    res.json(getCurrentStates());
-  } catch (error) {
-    console.error(
-      "Failed refreshing HA states",
-      error
-    );
+      res.json(
+        getCurrentStates()
+      );
 
-    res.json(getCurrentStates());
+    } catch (error) {
+      console.error(
+        "Failed refreshing HA states",
+        error
+      );
+
+      res.json(
+        getCurrentStates()
+      );
+    }
   }
-});
+);
 
 /**
  * GET /devices/stream
  *
- * Establishes an SSE connection between the browser
- * and backend for real-time Home Assistant updates.
+ * Establishes an SSE connection between
+ * the browser and backend for real-time
+ * Home Assistant updates.
  */
-router.get("/stream", (req, res) => {
-  res.setHeader(
-    "Content-Type",
-    "text/event-stream"
-  );
+router.get(
+  "/stream",
+  (req, res) => {
 
-  res.setHeader(
-    "Cache-Control",
-    "no-cache"
-  );
+    res.setHeader(
+      "Content-Type",
+      "text/event-stream"
+    );
 
-  res.setHeader(
-    "Connection",
-    "keep-alive"
-  );
+    res.setHeader(
+      "Cache-Control",
+      "no-cache"
+    );
 
-  res.setHeader(
-    "X-Accel-Buffering",
-    "no"
-  );
+    res.setHeader(
+      "Connection",
+      "keep-alive"
+    );
 
-  res.flushHeaders();
+    res.setHeader(
+      "X-Accel-Buffering",
+      "no"
+    );
 
-  res.write(": connected\n\n");
+    res.flushHeaders();
 
-  registerStreamClient(res);
-});
+    res.write(
+      ": connected\n\n"
+    );
+
+    registerStreamClient(res);
+  }
+);
 
 export default router;
-

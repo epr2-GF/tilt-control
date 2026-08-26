@@ -486,33 +486,35 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
       text-white
       p-6
     ">
-      <div className="mb-6">
-        <BackButton />
-      </div>
+<div className="mb-6 flex items-center justify-between gap-3">
+  <BackButton />
+
+  <button
+    onClick={() => setShowClearConfirm(true)}
+    className="
+      px-3
+      py-2
+      rounded-lg
+      border
+      border-red-500/30
+      bg-red-500/10
+      text-red-400
+      hover:bg-red-500/20
+      transition
+      text-xs
+      sm:text-sm
+      font-medium
+      whitespace-nowrap
+    "
+  >
+    Effacer le journal
+  </button>
+</div>
+
 <ZoneHeader
   title="Journal"
   subtitle="Historique sécurité système"
   icon={<ShieldCheck size={28} />}
-  action={
-    <button
-      onClick={() => setShowClearConfirm(true)}
-      className="
-        px-4
-        py-2
-        rounded-lg
-        border
-        border-red-500/30
-        bg-red-500/10
-        text-red-400
-        hover:bg-red-500/20
-        transition
-        text-sm
-        font-medium
-      "
-    >
-      Effacer le journal
-    </button>
-  }
 />
       <div className="mt-6 space-y-6">
 
