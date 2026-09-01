@@ -9,6 +9,9 @@ import {
   saveSiteMessage,
 } from "../data/siteMessageStore";
 
+import {
+  getAllDeviceStatusLogs,
+} from "../services/deviceStatusLogService";
 
 const router = express.Router();
 
@@ -76,6 +79,50 @@ router.get(
 
       return res.status(500).json({
         message: "Failed to read audit log",
+      });
+
+    }
+
+  }
+);
+
+/* =========================================================
+   GET /admin/device-status-log
+   ========================================================= */
+
+router.get(
+  "/device-status-log",
+  authMiddleware,
+  (req, res) => {
+
+    const user = (req as any).user;
+
+    // Superadmin only
+    if (user.role !== "superadmin") {
+
+      return res.status(403).json({
+        message: "Superadmin access required",
+      });
+
+    }
+
+    try {
+
+      const logs =
+        getAllDeviceStatusLogs();
+
+      return res.json(logs);
+
+    } catch (error) {
+
+      console.error(
+        "Failed to read device status log",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Failed to read device status log",
       });
 
     }

@@ -25,6 +25,7 @@ import {
   CheckCircle,
   ArrowLeft,
   MessageSquare,
+  ClipboardList,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -267,21 +268,37 @@ async function handleSave() {
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6">
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
-          <Shield />
-          <h1 className="text-2xl font-bold">Administration</h1>
-        </div>
 
-        <button
-          onClick={() => router.push("/")}
-          className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded"
-        >
-          <ArrowLeft size={16} />
-          Accueil
-        </button>
-      </div>
+
+{/* HEADER */}
+<div className="flex justify-between items-center mb-6">
+
+  <div className="flex items-center gap-3">
+    <Shield />
+    <h1 className="text-2xl font-bold">
+      Administration
+    </h1>
+  </div>
+
+  <button
+    onClick={() => router.push("/")}
+    className="
+      flex
+      items-center
+      gap-2
+      bg-slate-800
+      hover:bg-slate-700
+      px-4
+      py-2
+      rounded-lg
+      transition
+    "
+  >
+    <ArrowLeft size={16} />
+    Accueil
+  </button>
+
+</div>
 
       {/* CREATE USER */}
       <div className="bg-slate-900 p-4 rounded mb-6">

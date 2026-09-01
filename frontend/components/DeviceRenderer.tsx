@@ -6,6 +6,7 @@ import SensorCard from "@/components/SensorCard";
 import OnOffCard from "@/components/OnOffCard";
 import LockCard from "@/components/LockCard";
 import { useDevices } from "@/context/DeviceContext";
+import MiniLogCard from "@/components/MiniLogCard";
 
 import {
   Camera,
@@ -242,6 +243,24 @@ case "lock":
         </div>
       );
 
+
+          case "minilog":
+      return (
+        <div
+          key={device.id}
+          className={
+            disabled
+              ? "bg-orange-950/30 border border-orange-700/60 rounded-xl p-1"
+              : ""
+          }
+        >
+          <MiniLogCard
+            device={device}
+            icon={icon}
+            disabled={disabled}
+          />
+        </div>
+      );
     default:
       return null;
   }

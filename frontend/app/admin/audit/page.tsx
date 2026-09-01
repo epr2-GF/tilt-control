@@ -185,7 +185,16 @@ function getLogStyle(log: AuditLog) {
           />
         ),
       };
-
+case "DEVICE_COMMAND_DENIED":
+  return {
+    color: "text-sky-300",
+    icon: (
+      <AlertTriangle
+        size={14}
+        className="text-sky-300"
+      />
+    ),
+  };
    case "DEVICE_CONTROL_FAILED":
 case "TEST_DEVICE_CONTROL_FAILED":
   return {
@@ -377,6 +386,17 @@ function getDescription(log: AuditLog) {
   if (event === "USER_ENABLED") {
     return `Utilisateur réactivé → ${target}`;
   }
+
+  // Device created
+  if (event === "DEVICE_CREATED") {
+    return `Appareil créé → ${target}`;
+  }
+
+// Device deleted
+if (event === "DEVICE_DELETED") {
+  return `Appareil supprimé → ${target}`;
+}
+
   // Device disabled
   if (event === "DEVICE_DISABLED") {
     return `Appareil désactivé → ${target}`;
@@ -471,7 +491,26 @@ function getDescription(log: AuditLog) {
 if (event === "LOGIN_DISABLED_ACCOUNT") {
   return "Tentative de connexion — compte désactivé";
 }
+  // Device command denied by access rules
+  if (event === "DEVICE_COMMAND_DENIED") {
 
+    const reason =
+      typeof details.reason === "string"
+        ? details.reason
+        : "";
+
+    if (reason === "OUTSIDE_TIME_WINDOW") {
+      return "Commande refusée — Dehors horaires";
+    }
+
+    if (reason === "OUTSIDE_LOCATION") {
+      return "Commande refusée — Dehors zone";
+    }
+
+    return reason
+      ? `Commande refusée — ${reason}`
+      : "Commande refusée";
+  }
   // Other events
   return log.event;
 }

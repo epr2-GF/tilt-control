@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { isWithinSiteRadius } from "../services/locationService";
+import { writeAudit } from "../services/auditService";
+import { getDeviceById } from "../services/deviceService";
 
 export function locationMiddleware(
   req: Request,
@@ -69,11 +71,35 @@ export function locationMiddleware(
     return next();
   }
 
-  user.locationAllowed = false;
+user.locationAllowed = false;
 
-  console.log("❌ User outside permitted area");
+console.log("❌ User outside permitted area");
 
-  return res.status(403).json({
+const device =
+  getDeviceById(
+    Number(req.body?.deviceId)
+  );
+
+writeAudit({
+  severity: "info",
+  event: "DEVICE_COMMAND_DENIED",
+  actor: user.username,
+  target:
+   device?.name ||
+   String(req.body?.deviceId),
+
+  details: {
+    deviceId: req.body?.deviceId,
+    action: req.body?.action,
+    result: "denied",
+    reason: "location",
     message: "En dehors de la zone autorisée",
-  });
+  },
+
+  role: user.role,
+});
+
+return res.status(403).json({
+  message: "En dehors de la zone autorisée",
+});
 }

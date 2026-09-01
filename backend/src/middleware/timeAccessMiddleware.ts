@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { readUsers } from "../data/usersStore";
-
+import { getDeviceById } from "../services/deviceService";
+import { writeAudit } from "../services/auditService";
 
 export function timeAccessMiddleware(
   req: Request,
@@ -8,23 +9,43 @@ export function timeAccessMiddleware(
   next: NextFunction
 ) {
 
-console.log("⏰ TIME ACCESS MIDDLEWARE HIT");
+  console.log("⏰ TIME ACCESS MIDDLEWARE HIT");
 
   const currentUser = (req as any).user;
 
+  /*
+   * ---------------------------------------------------------
+   * AUTHENTICATION CHECK
+   * ---------------------------------------------------------
+   */
 
   if (!currentUser) {
+
     return res.status(401).json({
-      message:"Not authenticated"
+      message: "Not authenticated",
     });
+
   }
 
 
-  // Admin bypass
-  if(currentUser.role === "admin"){
+  /*
+   * ---------------------------------------------------------
+   * ADMIN BYPASS
+   * ---------------------------------------------------------
+   */
+
+  if (currentUser.role === "admin") {
+
     return next();
+
   }
 
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD USER
+   * ---------------------------------------------------------
+   */
 
   const users = readUsers();
 
@@ -33,57 +54,92 @@ console.log("⏰ TIME ACCESS MIDDLEWARE HIT");
       u => u.id === currentUser.id
     );
 
+  if (!user) {
 
-  if(!user){
     return res.status(401).json({
-      message:"User not found"
+      message: "User not found",
     });
+
   }
 
 
-  // No restrictions
-  if(!user.accessStart || !user.accessEnd){
+  /*
+   * ---------------------------------------------------------
+   * NO TIME RESTRICTION
+   * ---------------------------------------------------------
+   */
+
+  if (!user.accessStart || !user.accessEnd) {
+
+    (req as any).user.timeAccessAllowed = true;
+
     return next();
+
   }
 
+
+  /*
+   * ---------------------------------------------------------
+   * CALCULATE CURRENT TIME
+   * ---------------------------------------------------------
+   */
 
   const now =
     new Date();
-
 
   const current =
     now.getHours() * 60 +
     now.getMinutes();
 
 
-  const [startH,startM] =
-    user.accessStart.split(":").map(Number);
+  /*
+   * ---------------------------------------------------------
+   * CONVERT USER TIME WINDOW TO MINUTES
+   * ---------------------------------------------------------
+   */
 
-  const [endH,endM] =
-    user.accessEnd.split(":").map(Number);
+  const [startH, startM] =
+    user.accessStart
+      .split(":")
+      .map(Number);
+
+  const [endH, endM] =
+    user.accessEnd
+      .split(":")
+      .map(Number);
 
 
   const start =
-    startH * 60 + startM;
+    startH * 60 +
+    startM;
 
   const end =
-    endH * 60 + endM;
+    endH * 60 +
+    endM;
 
 
-  let allowed;
+  /*
+   * ---------------------------------------------------------
+   * CHECK TIME WINDOW
+   * ---------------------------------------------------------
+   *
+   * Normal:
+   *   08:00 -> 18:00
+   *
+   * Overnight:
+   *   22:00 -> 06:00
+   * ---------------------------------------------------------
+   */
 
+  let allowed: boolean;
 
-  // Normal daytime period
-  if(start <= end){
+  if (start <= end) {
 
     allowed =
       current >= start &&
       current <= end;
 
-  }
-
-  // Overnight period e.g. 22:00 - 06:00
-  else {
+  } else {
 
     allowed =
       current >= start ||
@@ -92,13 +148,117 @@ console.log("⏰ TIME ACCESS MIDDLEWARE HIT");
   }
 
 
-(req as any).user.timeAccessAllowed = allowed;
+  /*
+   * Store the result for /devices/trigger.
+   */
 
-console.log(
-  "⏰ Time access:",
-  currentUser.username,
-  allowed
-);
+  (req as any).user.timeAccessAllowed =
+    allowed;
 
-next();
+
+  console.log(
+    "⏰ Time access:",
+    currentUser.username,
+    allowed
+  );
+
+
+  /*
+   * ---------------------------------------------------------
+   * USER LOG — TIME DENIAL
+   * ---------------------------------------------------------
+   *
+   * We deliberately use the audit/user log here.
+   *
+   * This is NOT a device status log.
+   *
+   * The actual device command will subsequently be
+   * rejected by /devices/trigger.
+   * ---------------------------------------------------------
+   */
+
+  if (!allowed) {
+
+    try {
+
+      const deviceId =
+        Number(req.body?.deviceId);
+
+      const device =
+        getDeviceById(deviceId);
+
+
+      writeAudit({
+
+        severity: "info",
+
+        event:
+          "DEVICE_COMMAND_DENIED",
+
+        actor:
+          currentUser.username,
+
+        target:
+          device?.name ||
+          String(deviceId),
+
+        details: {
+
+          deviceId,
+
+          entityId:
+            device?.entityId,
+
+          action:
+            req.body?.action,
+
+          reason:
+            "OUTSIDE_TIME_WINDOW",
+
+          message:
+            "Dehors horaires",
+
+          result:
+            "denied",
+
+        },
+
+        role:
+          currentUser.role,
+
+      });
+
+
+      console.log(
+        `🚫 USER command denied by time -> ${currentUser.username} -> ${device?.name || deviceId}`
+      );
+
+    } catch (error) {
+
+      /*
+       * Logging failure must never prevent
+       * the normal access-control decision.
+       */
+
+      console.error(
+        "❌ Failed writing time-access denial log",
+        error
+      );
+
+    }
+
+  }
+
+
+  /*
+   * ---------------------------------------------------------
+   * CONTINUE TO /devices/trigger
+   * ---------------------------------------------------------
+   *
+   * /devices/trigger sees timeAccessAllowed === false
+   * and returns OUTSIDE_TIME_WINDOW.
+   */
+
+  next();
+
 }

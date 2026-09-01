@@ -1,22 +1,34 @@
-// In lib/api.ts
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
-/* -----------------------------
+// frontend/lib/api.ts
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "/api";
+
+/* ---------------------------------------------------------
    SAFE TOKEN GETTER
------------------------------- */
+--------------------------------------------------------- */
+
 function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("smart-site-token");
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return localStorage.getItem(
+    "smart-site-token"
+  );
 }
 
-/* -----------------------------
+
+/* ---------------------------------------------------------
    CORE FETCH WRAPPER
------------------------------- */
+--------------------------------------------------------- */
+
 export async function apiFetch(
   endpoint: string,
   options: RequestInit = {},
   tokenOverride?: string
 ) {
-  const token = tokenOverride ?? getToken();
+  const token =
+    tokenOverride ?? getToken();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -24,124 +36,194 @@ export async function apiFetch(
   };
 
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers.Authorization =
+      `Bearer ${token}`;
   }
 
-/* -----------------------------
-     CORE FETCH WRAPPER (WITH URL GUARD)
-  ------------------------------ */
-  
-  // 🧼 Automatically strip trailing slashes from API_URL and add leading slashes to endpoint
-  const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
-const res = await fetch(`${baseUrl}${cleanEndpoint}`, {
-  ...options,
-  headers,
-  cache: "no-store",
-});
+  /* -------------------------------------------------------
+     CLEAN API URL
+  ------------------------------------------------------- */
 
-/* -----------------------------
-      AUTH HANDLING (FIXED origin loop check)
-  ------------------------------ */
-if (res.status === 401)  {
-  const error = await res.json().catch(() => ({}));
+  const baseUrl =
+    API_URL.endsWith("/")
+      ? API_URL.slice(0, -1)
+      : API_URL;
 
-  const message = error.message || "Session non autorisée ou expirée";
+  const cleanEndpoint =
+    endpoint.startsWith("/")
+      ? endpoint
+      : `/${endpoint}`;
 
-  if (typeof window !== "undefined") {
-    if (window.location.pathname !== "/login") {
-      console.warn("Unauthorized API Handshake - Resetting access session.");
 
-      localStorage.removeItem("smart-site-token");
+  /* -------------------------------------------------------
+     REQUEST
+  ------------------------------------------------------- */
 
-      // We will use this after redirect
-      sessionStorage.setItem("logout-message", message);
-
-      window.location.href = "/login";
+  const res = await fetch(
+    `${baseUrl}${cleanEndpoint}`,
+    {
+      ...options,
+      headers,
+      cache: "no-store",
     }
-  }
+  );
 
-  throw new Error(message);
-}
 
-if (res.status === 403) {
-  const error = await res.json().catch(() => ({}));
+  /* -------------------------------------------------------
+     401 = SESSION UNAUTHORIZED
+     
+     Only 401 logs the user out.
+  ------------------------------------------------------- */
 
-  const message =
-    error.message || "Accès refusé";
+  if (res.status === 401) {
 
-  if (typeof window !== "undefined") {
-    if (window.location.pathname !== "/login") {
+    const error =
+      await res.json()
+        .catch(() => ({}));
+
+    const message =
+      error.message ||
+      "Session non autorisée ou expirée";
+
+
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/login"
+    ) {
+
       console.warn(
-        "Forbidden API response - resetting access session.",
-        message
+        "Unauthorized API response - resetting session."
       );
 
-      localStorage.removeItem("smart-site-token");
+      localStorage.removeItem(
+        "smart-site-token"
+      );
 
       sessionStorage.setItem(
         "logout-message",
         message
       );
 
-      window.location.href = "/login";
+      window.location.href =
+        "/login";
     }
+
+
+    throw new Error(message);
   }
 
-  throw new Error(message);
-}
 
-
-  
-  /* -----------------------------
+  /* -------------------------------------------------------
      ERROR HANDLING
-  ------------------------------ */
+     
+     IMPORTANT:
+     
+     403 is NOT a logout.
+     
+     It can mean:
+       - outside time window
+       - outside permitted area
+       - insufficient permissions
+       - protected user deletion
+       - device disabled
+       - etc.
+     
+     The calling page/component receives the error so it
+     can display its toast.
+  ------------------------------------------------------- */
+
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || "API Error");
+
+    const error =
+      await res.json()
+        .catch(() => ({}));
+
+    const message =
+      error.message ||
+      error.error ||
+      "API Error";
+
+    throw new Error(message);
   }
+
+
+  /* -------------------------------------------------------
+     SUCCESS
+  ------------------------------------------------------- */
 
   return res.json();
 }
 
-/* -----------------------------
+
+/* ---------------------------------------------------------
    AUTH
------------------------------- */
+--------------------------------------------------------- */
+
 export async function getMe() {
-  return apiFetch("/auth/me");
+  return apiFetch(
+    "/auth/me"
+  );
 }
 
-/* -----------------------------
+
+/* ---------------------------------------------------------
    USERS
------------------------------- */
+--------------------------------------------------------- */
+
 export async function getUsers() {
-  return apiFetch("/users");
+  return apiFetch(
+    "/users"
+  );
 }
 
-export async function createUser(user: any) {
-  return apiFetch("/users", {
-    method: "POST",
-    body: JSON.stringify(user),
-  });
+
+export async function createUser(
+  user: any
+) {
+  return apiFetch(
+    "/users",
+    {
+      method: "POST",
+      body: JSON.stringify(user),
+    }
+  );
 }
 
-export async function updateUser(id: string, user: any) {
-  return apiFetch(`/users/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(user),
-  });
+
+export async function updateUser(
+  id: string,
+  user: any
+) {
+  return apiFetch(
+    `/users/${id}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(user),
+    }
+  );
 }
 
-export async function deleteUser(id: string) {
-  return apiFetch(`/users/${id}`, {
-    method: "DELETE",
-  });
+
+export async function deleteUser(
+  id: string
+) {
+  return apiFetch(
+    `/users/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
 }
 
-export async function toggleUserDisabled(id: string) {
-  return apiFetch(`/users/${id}/toggle`, {
-    method: "PATCH",
-  });
-}
 
+export async function toggleUserDisabled(
+  id: string
+) {
+  return apiFetch(
+    `/users/${id}/toggle`,
+    {
+      method: "PATCH",
+    }
+  );
+}

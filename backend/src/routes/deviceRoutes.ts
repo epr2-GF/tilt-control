@@ -2,11 +2,12 @@ import { Router } from "express";
 import { homeAssistantService } from "../services/homeAssistantService";
 import { timeAccessMiddleware } from "../middleware/timeAccessMiddleware";
 import { locationMiddleware } from "../middleware/locationMiddleware";
-
+import { authMiddleware } from "../middleware/authMiddleware";
 import {
   registerStreamClient,
   getCurrentStates,
   refreshHAStates,
+  registerAppCommand,
 } from "../services/haStreamService";
 
 import {
@@ -15,6 +16,12 @@ import {
 } from "../services/deviceService";
 
 import { writeAudit } from "../services/auditService";
+import {
+  addDeviceStatusLog,
+  getDeviceStatusLogs,
+  getAllDeviceStatusLogs,
+  deleteDeviceStatusLog,
+} from "../services/deviceStatusLogService";
 
 const router = Router();
 
@@ -26,6 +33,106 @@ const router = Router();
 router.get("/", (req, res) => {
   res.json(getDevices());
 });
+
+
+/**
+ * GET /devices/status-log/:entityId
+ *
+ * Returns the five most recent status-log entries
+ * for a single Home Assistant entity.
+ *
+ * Used by the Mini Log card.
+ */
+router.get(
+  "/status-log/:entityId",
+  (req, res) => {
+    try {
+      const entityId = req.params.entityId;
+
+      if (!entityId) {
+        return res.status(400).json({
+          error: "Entity ID required",
+        });
+      }
+
+      const logs =
+        getDeviceStatusLogs(entityId);
+
+      return res.json(
+        logs.slice(0, 5)
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load device status logs",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          "Failed to load device status logs",
+      });
+    }
+  }
+);
+
+/* =========================================================
+   DELETE /admin/device-status-log/:id
+   ========================================================= */
+
+router.delete(
+  "/device-status-log/:id",
+  authMiddleware,
+  (req, res) => {
+
+    const user = (req as any).user;
+
+    // Superadmin only
+    if (user.role !== "superadmin") {
+      return res.status(403).json({
+        message: "Superadmin access required",
+      });
+    }
+
+    try {
+
+      const id =
+        Number(req.params.id);
+
+      if (!Number.isInteger(id)) {
+        return res.status(400).json({
+          message: "Invalid log entry ID",
+        });
+      }
+
+      const deleted =
+        deleteDeviceStatusLog(id);
+
+      if (!deleted) {
+        return res.status(404).json({
+          message: "Log entry not found",
+        });
+      }
+
+      return res.json({
+        success: true,
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Failed to delete device status log entry",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Failed to delete device status log entry",
+      });
+    }
+  }
+);
 
 /**
  * POST /devices/trigger
@@ -157,11 +264,96 @@ router.post(
         haService = "toggle";
       }
 
+/*
+ * ---------------------------------------------------------
+ * REGISTER EXPECTED APP STATE CHANGE
+ * ---------------------------------------------------------
+ *
+ * The HA websocket will report the actual state change.
+ * We use this marker to distinguish an app command from
+ * an independent Home Assistant change.
+ */
+
+let expectedState: string | null = null;
+
+if (haService === "toggle") {
+
+  const currentState =
+    getCurrentStates()[entityId]?.state;
+
+  if (currentState === "on") {
+    expectedState = "off";
+  } else if (currentState === "off") {
+    expectedState = "on";
+  }
+
+}
+
+if (haService === "turn_on") {
+  expectedState = "on";
+}
+
+if (haService === "turn_off") {
+  expectedState = "off";
+}
+
+if (haService === "unlock") {
+  expectedState = "unlocked";
+}
+
+if (haService === "lock") {
+  expectedState = "locked";
+}
+
+if (haService === "open_cover") {
+  expectedState = "opening";
+}
+
+if (haService === "close_cover") {
+  expectedState = "closing";
+}
+
+if (haService === "stop_cover") {
+  expectedState = "stopped";
+}
+
+if (expectedState) {
+
+  registerAppCommand(
+    entityId,
+    expectedState
+  );
+
+}
+
+/*
+ * TOGGLE
+ *
+ * HA only reports the resulting state.
+ * Predict that state from the current cached state.
+ */
+
+if (haService === "toggle") {
+
+  const currentState =
+    getCurrentStates()[entityId]?.state;
+
+  if (currentState === "on") {
+    expectedState = "off";
+  }
+
+  if (currentState === "off") {
+    expectedState = "on";
+  }
+
+}
       /*
        * ---------------------------------------------------------
        * SEND COMMAND TO HOME ASSISTANT
        * ---------------------------------------------------------
        */
+
+
 
       const result =
         await homeAssistantService.triggerService(
@@ -169,6 +361,50 @@ router.post(
           haService,
           entityId
         );
+
+/*
+ * ---------------------------------------------------------
+ * DEVICE STATUS LOG — APP COMMAND
+ * ---------------------------------------------------------
+ */
+
+if (
+  haService === "open_cover" ||
+  haService === "close_cover" ||
+  haService === "stop_cover"
+) {
+
+  addDeviceStatusLog(
+    entityId,
+    haService.toUpperCase(),
+    user.username
+  );
+
+}
+
+const appLogActions: Record<string, string> = {
+  toggle: "TOGGLE",
+  turn_on: "ON",
+  turn_off: "OFF",
+  lock: "LOCK",
+  unlock: "UNLOCK",
+  open: "OPEN",
+  close: "CLOSE",
+  stop: "STOP",
+};
+
+const appLogAction =
+  appLogActions[haService];
+
+if (appLogAction) {
+
+  addDeviceStatusLog(
+    entityId,
+    appLogAction,
+    user.username
+  );
+
+}
 
       /*
        * ---------------------------------------------------------

@@ -472,6 +472,26 @@ useEffect(() => {
 
               )}
 
+{/* DEVICE LOG */}
+
+{isSuperAdmin && (
+
+  <button
+    onClick={() =>
+      router.push(
+        "/admin/device-log"
+      )
+    }
+    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg transition"
+  >
+
+    Journal appareils
+
+  </button>
+
+)}
+
+
 
               {/* STATUS */}
 
@@ -596,7 +616,7 @@ useEffect(() => {
   </div>
 
   <div className="mt-1">
-    Version 1.1
+    Version 1.2
   </div>
 
 </footer>

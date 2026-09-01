@@ -1,6 +1,11 @@
 console.log("🔥 haStreamService loaded");
 import WebSocket from "ws";
-import { getConfiguredEntities } from "./deviceConfigService";
+import {
+  getConfiguredEntities,
+  getDeviceStatusLogEntities,
+} from "./deviceConfigService";
+
+import { addDeviceStatusLog } from "./deviceStatusLogService";
 
 const HA_URL = process.env.HA_URL || "";
 const HA_TOKEN = process.env.HA_TOKEN || "";
@@ -27,15 +32,40 @@ let reconnectAttempts = 0;
 let connected = false;
 
 // Whitelist of entities our web app actually cares about
-let SSE_ENTITIES:string[] = [];
+let SSE_ENTITIES: string[] = [];
+let DEVICE_STATUS_LOG_ENTITIES: string[] = [];
+
+type PendingAppCommand = {
+  expectedState: string;
+  timestamp: number;
+};
+
+const pendingAppCommands:
+  Record<string, PendingAppCommand[]> = {};
 
 export function reloadDeviceEntities() {
 
   SSE_ENTITIES = getConfiguredEntities();
 
+  DEVICE_STATUS_LOG_ENTITIES =
+    getDeviceStatusLogEntities();
+
   console.log(
     "♻️ Reloaded SSE whitelist:",
-    JSON.stringify(SSE_ENTITIES, null, 2)
+    JSON.stringify(
+      SSE_ENTITIES,
+      null,
+      2
+    )
+  );
+
+  console.log(
+    "♻️ Reloaded device status log whitelist:",
+    JSON.stringify(
+      DEVICE_STATUS_LOG_ENTITIES,
+      null,
+      2
+    )
   );
 
 }
@@ -100,6 +130,50 @@ export function registerStreamClient(res: any) {
   });
 }
 
+function consumeAppCommand(
+  entityId: string,
+  newState: string
+): boolean {
+
+  const commands =
+    pendingAppCommands[entityId];
+
+  if (!commands || commands.length === 0) {
+    return false;
+  }
+
+  const now = Date.now();
+
+  // Remove commands older than 10 seconds
+  const validCommands =
+    commands.filter(
+      command =>
+        now - command.timestamp < 10000
+    );
+
+  pendingAppCommands[entityId] =
+    validCommands;
+
+  const index =
+    validCommands.findIndex(
+      command =>
+        command.expectedState === newState
+    );
+
+  if (index === -1) {
+    return false;
+  }
+
+  validCommands.splice(index, 1);
+
+  pendingAppCommands[entityId] =
+    validCommands;
+
+  return true;
+
+}
+
+
 function broadcastToFrontend(entityId: string, newState: any) {
 
   const data = JSON.stringify({
@@ -128,6 +202,23 @@ function broadcastToFrontend(entityId: string, newState: any) {
     }
 
   });
+}
+
+export function registerAppCommand(
+  entityId: string,
+  expectedState: string
+) {
+
+  if (!pendingAppCommands[entityId]) {
+    pendingAppCommands[entityId] = [];
+  }
+
+  pendingAppCommands[entityId].push({
+    expectedState,
+    timestamp: Date.now(),
+  });
+
+
 }
 
 export function initHomeAssistantStream() {
@@ -174,147 +265,268 @@ ws.on("open", () => {
 
 ws.on("message", (rawMessage: string) => {
 
-    lastMessageTime = Date.now();
-    const msg = JSON.parse(rawMessage);
+  lastMessageTime = Date.now();
 
-    // -------------------------------------------------
-    // Home Assistant requests authentication
-    // -------------------------------------------------
-    if (msg.type === "auth_required") {
-      ws!.send(
-        JSON.stringify({
-          type: "auth",
-          access_token: HA_TOKEN,
-        })
-      );
-      return;
-    }
+  const msg = JSON.parse(rawMessage);
 
-    // -------------------------------------------------
-    // Authentication successful
-    // -------------------------------------------------
-if (msg.type === "auth_ok") {
+  // -------------------------------------------------
+  // Home Assistant requests authentication
+  // -------------------------------------------------
 
-  SSE_ENTITIES = getConfiguredEntities();
+  if (msg.type === "auth_required") {
 
-  console.log(
-    "📡 SSE WHITELIST:",
-    SSE_ENTITIES
-  );
+    ws!.send(
+      JSON.stringify({
+        type: "auth",
+        access_token: HA_TOKEN,
+      })
+    );
 
-
-
-  if (healthTimer) {
-    clearInterval(healthTimer);
-    healthTimer = null;
+    return;
   }
 
-  healthTimer = setInterval(() => {
 
-    const age = Date.now() - lastMessageTime;
+  // -------------------------------------------------
+  // Authentication successful
+  // -------------------------------------------------
 
-    if (age > 120000) {
+  if (msg.type === "auth_ok") {
 
-      console.warn(`💀 No HA messages for ${Math.round(age / 1000)} seconds. Restarting websocket...`);
+    SSE_ENTITIES = getConfiguredEntities();
 
-      ws?.terminate();
+    console.log(
+      "📡 SSE WHITELIST:",
+      SSE_ENTITIES
+    );
 
+    if (healthTimer) {
+      clearInterval(healthTimer);
+      healthTimer = null;
     }
 
-  }, 30000);
-      // Request current state of every entity
-      ws!.send(
-        JSON.stringify({
-          id: 1,
-          type: "get_states",
-        })
-      );
+    healthTimer = setInterval(() => {
 
-      // Subscribe to future updates
-      ws!.send(
-        JSON.stringify({
-          id: 2,
-          type: "subscribe_events",
-          event_type: "state_changed",
-        })
-      );
+      const age =
+        Date.now() - lastMessageTime;
 
+      if (age > 120000) {
+
+        console.warn(
+          `💀 No HA messages for ${Math.round(
+            age / 1000
+          )} seconds. Restarting websocket...`
+        );
+
+        ws?.terminate();
+
+      }
+
+    }, 30000);
+
+
+    // Request current states
+
+    ws!.send(
+      JSON.stringify({
+        id: 1,
+        type: "get_states",
+      })
+    );
+
+
+    // Subscribe to future state changes
+
+    ws!.send(
+      JSON.stringify({
+        id: 2,
+        type: "subscribe_events",
+        event_type: "state_changed",
+      })
+    );
+
+    return;
+  }
+
+
+  // -------------------------------------------------
+  // Initial snapshot
+  // -------------------------------------------------
+
+  if (
+    msg.type === "result" &&
+    Array.isArray(msg.result)
+  ) {
+
+    console.log(
+      "📥 Loading initial Home Assistant state cache..."
+    );
+
+    msg.result.forEach((entity: any) => {
+
+      if (
+        SSE_ENTITIES.includes(
+          entity.entity_id
+        )
+      ) {
+
+        entityStateCache[
+          entity.entity_id
+        ] = {
+          state: entity.state,
+          attributes: entity.attributes,
+        };
+
+        console.log(
+          `📥 ${entity.entity_id} = ${entity.state}`
+        );
+
+        if (
+          entity.entity_id ===
+          "cover.garage_porte_tilt"
+        ) {
+
+          console.log(
+            "🚪 Garage position:",
+            entity.attributes?.current_position
+          );
+
+        }
+
+      }
+
+    });
+
+    console.log(
+      "✅ Home Assistant cache ready."
+    );
+
+    return;
+  }
+
+
+  // -------------------------------------------------
+  // Live state updates
+  // -------------------------------------------------
+
+  if (
+    msg.type === "event" &&
+    msg.event?.event_type ===
+      "state_changed"
+  ) {
+
+    const eventData =
+      msg.event.data;
+
+    if (!eventData) {
       return;
     }
 
-// -------------------------------------------------
-// Initial snapshot
-// -------------------------------------------------
-if (
-    msg.type === "result" &&
-    Array.isArray(msg.result)
-) {
-  console.log("📥 Loading initial Home Assistant state cache...");
+    const entityId =
+      eventData.entity_id;
 
-  msg.result.forEach((entity: any) => {
+    const newState =
+      eventData.new_state;
 
-    if (SSE_ENTITIES.includes(entity.entity_id)) {
 
-      entityStateCache[entity.entity_id] = {
-        state: entity.state,
-        attributes: entity.attributes,
+    // -------------------------------------------------
+    // Update frontend state cache
+    // -------------------------------------------------
+
+    if (
+      entityId &&
+      newState &&
+      SSE_ENTITIES.includes(entityId)
+    ) {
+
+      entityStateCache[entityId] = {
+        state: newState.state,
+        attributes: newState.attributes,
       };
 
       console.log(
-        `📥 ${entity.entity_id} = ${entity.state}`
+        `🎯 Stream Broadcast -> ${entityId}: ${newState.state}`
       );
 
-      if (entity.entity_id === "cover.garage_porte_tilt") {
-        console.log(
-          "🚪 Garage position:",
-          entity.attributes?.current_position
-        );
-      }
+      broadcastToFrontend(
+        entityId,
+        newState
+      );
 
     }
 
-  });
-
-  console.log("✅ Home Assistant cache ready.");
-
-  return;
-}
 
     // -------------------------------------------------
-    // Live state updates
+    // Device status log
     // -------------------------------------------------
+
     if (
-      msg.type === "event" &&
-      msg.event?.event_type === "state_changed"
+      entityId &&
+      newState &&
+      DEVICE_STATUS_LOG_ENTITIES.includes(
+        entityId
+      )
     ) {
-      const eventData = msg.event.data;
 
-      if (!eventData) return;
-
-      const entityId = eventData.entity_id;
-      const newState = eventData.new_state;
-
-      if (
-        entityId &&
-        newState &&
-        SSE_ENTITIES.includes(entityId)
-      ) {
-        entityStateCache[entityId] = {
-  state: newState.state,
-  attributes: newState.attributes,
-};
-
-        console.log(
-          `🎯 Stream Broadcast -> ${entityId}: ${newState.state}`
+      const isAppCommand =
+        consumeAppCommand(
+          entityId,
+          newState.state
         );
 
-        broadcastToFrontend(entityId, newState);
+
+      // -------------------------------------------------
+      // App command already logged by /trigger
+      // -------------------------------------------------
+
+      if (isAppCommand) {
+
+        console.log(
+          `📲 App command state matched -> ${entityId}: ${newState.state}`
+        );
+
       }
 
-      return;
-    }
-  });
 
+      // -------------------------------------------------
+      // Ignore repeated roller shutter movement
+      // -------------------------------------------------
+
+      else if (
+        newState.state === "opening" ||
+        newState.state === "closing"
+      ) {
+
+        console.log(
+          `⏭️ Ignoring cover movement state -> ${entityId}: ${newState.state}`
+        );
+
+      }
+
+
+      // -------------------------------------------------
+      // Genuine Home Assistant change
+      // -------------------------------------------------
+
+      else {
+
+        addDeviceStatusLog(
+          entityId,
+          newState.state,
+          "HA"
+        );
+
+        console.log(
+          `📝 Device status log -> ${entityId}: ${newState.state} [HA]`
+        );
+
+      }
+
+    }
+
+    return;
+  }
+
+});
 ws.on("close", (code, reason) => {
 
   connected = false;

@@ -36,12 +36,15 @@ type DeviceFormData = {
     | "rollerShutter"
     | "sensor"
     | "onOff"
-    | "lock";
+    | "lock"
+    | "minilog";
   statusTrue: string;
   statusFalse: string;
   zones: string[];
   icon: string;
   enabled: boolean;
+  miniLogMode: "normal" | "pulse";
+  miniLogPulseSeconds: number;
 };
 
 type Props = {
@@ -99,6 +102,8 @@ const defaultForm: DeviceFormData = {
   zones: ["tilt"],
   icon: "device",
   enabled: true,
+  miniLogMode: "normal",
+  miniLogPulseSeconds: 2,
 };
 
 export default function DeviceForm({
@@ -403,12 +408,107 @@ if (
               Lock
             </option>
 
+            <option value="minilog">
+             Mini status
+            </option>
+
             <option value="sensor">
               Sensor
             </option>
           </select>
         </div>
 
+{form.cardType === "minilog" && (
+  <div className="
+    border
+    border-slate-700
+    rounded-xl
+    p-4
+    bg-slate-950/40
+  ">
+    <h3 className="font-semibold mb-4">
+      Configuration Mini Status
+    </h3>
+
+    <label className="block mb-2 text-sm text-slate-300">
+      Mode d'enregistrement
+    </label>
+
+    <select
+      className="
+        w-full
+        bg-slate-800
+        border border-slate-700
+        rounded-lg
+        p-3
+        outline-none
+        focus:border-blue-500
+      "
+      value={form.miniLogMode}
+      onChange={(e) =>
+        updateField(
+          "miniLogMode",
+          e.target.value as "normal" | "pulse"
+        )
+      }
+    >
+      <option value="normal">
+        Normal — chaque changement d'état
+      </option>
+
+      <option value="pulse">
+        Pulse — ON/OFF rapprochés = une seule entrée
+      </option>
+    </select>
+
+    {form.miniLogMode === "pulse" && (
+      <div className="mt-4">
+        <label className="block mb-2 text-sm text-slate-300">
+          Durée maximale de l'impulsion
+        </label>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min="0.1"
+            max="10"
+            step="0.1"
+            className="
+              w-full
+              bg-slate-800
+              border border-slate-700
+              rounded-lg
+              p-3
+              outline-none
+              focus:border-blue-500
+            "
+            value={form.miniLogPulseSeconds}
+            onChange={(e) =>
+              updateField(
+                "miniLogPulseSeconds",
+                Number(e.target.value)
+              )
+            }
+          />
+
+          <span className="text-sm text-slate-400">
+            secondes
+          </span>
+        </div>
+
+        <p className="mt-2 text-xs text-slate-500">
+          Un changement ON suivi d'un changement OFF dans ce délai
+          sera enregistré comme un seul événement.
+        </p>
+      </div>
+    )}
+
+    <p className="mt-3 text-xs text-slate-500">
+      Le mode Pulse regroupe les changements ON/OFF très rapprochés
+      en un seul événement pour les équipements à impulsion.
+    </p>
+  </div>
+)}
         {/* ON / OFF ENTITIES */}
 
         {form.cardType === "onOff" && (

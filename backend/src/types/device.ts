@@ -26,7 +26,8 @@ cardType:
   | "rollerShutter"
   | "sensor"
   | "onOff"
-  | "lock";
+  | "lock"
+  | "minilog";
 
   statusTrue?: string;
 
@@ -39,5 +40,9 @@ cardType:
   enabled: boolean;
 
   sortOrder: number;
+
+  miniLogMode?: "normal" | "pulse";
+
+  miniLogPulseSeconds?: number;
 
 }
