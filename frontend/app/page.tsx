@@ -616,7 +616,7 @@ useEffect(() => {
   </div>
 
   <div className="mt-1">
-    Version 1.2
+    Version 1.3
   </div>
 
 </footer>
