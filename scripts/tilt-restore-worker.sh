@@ -154,7 +154,7 @@ if "${RESTORE_SCRIPT}" "${BACKUP_PATH}"; then
     echo "Restarting backend to process restore audit..."
     echo
 
-    systemctl restart tilt-backend
+    pm2 restart tilt-backend --update-env
 
     exit 0
 
@@ -181,7 +181,7 @@ else
     echo "Restarting backend to process restore audit..."
     echo
 
-    systemctl restart tilt-backend
+    pm2 restart tilt-backend --update-env
 
     exit 1
 
