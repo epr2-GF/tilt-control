@@ -14,6 +14,7 @@ import statusRoutes from "./routes/statusRoutes";
 import sessionRoutes from "./routes/sessionRoutes";
 import deviceAdminRoutes from "./routes/deviceAdminRoutes";
 import { readUsers } from "./data/usersStore";
+import backupRoutes from "./routes/backupRoutes";
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/devices", authMiddleware, deviceRoutes); // Protect ALL device routes with your JWT middleware
 app.use("/api/location", locationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin/backup", backupRoutes);
 app.use("/api/status", statusRoutes);
 app.use("/api/session", authMiddleware, sessionRoutes);
 app.use(
