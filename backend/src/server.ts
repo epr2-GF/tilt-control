@@ -44,8 +44,19 @@ function processRestoreAuditMarker() {
         )
       );
 
+    if (
+      marker.status !== "success" &&
+      marker.status !== "failed"
+    ) {
+      console.warn(
+        "Restore audit marker is still running; leaving it untouched."
+      );
+
+      return;
+    }
+
     const success =
-      marker.status !== "failed";
+      marker.status === "success";
 
     writeAudit({
       severity: success
@@ -65,6 +76,8 @@ function processRestoreAuditMarker() {
           marker.job_id,
         restoreStarted:
           marker.started,
+        restoreCompleted:
+          marker.completed,
       },
     });
 

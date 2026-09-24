@@ -30,6 +30,29 @@ EOF
     chmod 600 "${STATUS_FILE}"
 }
 
+write_audit_marker() {
+
+    local STATUS="$1"
+    local JOB_ID="$2"
+    local BACKUP="$3"
+    local ACTOR="$4"
+    local STARTED="$5"
+    local COMPLETED="$6"
+
+    cat > "${AUDIT_MARKER_FILE}" <<EOF
+{
+  "status": "${STATUS}",
+  "job_id": "${JOB_ID}",
+  "backup": "${BACKUP}",
+  "actor": "${ACTOR}",
+  "started": "${STARTED}",
+  "completed": "${COMPLETED}"
+}
+EOF
+
+    chmod 600 "${AUDIT_MARKER_FILE}"
+}
+
 if [ ! -d "${STATE_ROOT}" ]; then
     mkdir -p "${STATE_ROOT}"
     chmod 700 "${STATE_ROOT}"
@@ -87,16 +110,15 @@ if [ ! -d "${BACKUP_PATH}" ]; then
     exit 1
 fi
 
-cat > "${AUDIT_MARKER_FILE}" <<EOF
-{
-  "job_id": "${JOB_ID}",
-  "backup": "${BACKUP}",
-  "actor": "${ACTOR}",
-  "started": "$(date -Iseconds)"
-}
-EOF
+STARTED="$(date -Iseconds)"
 
-chmod 600 "${AUDIT_MARKER_FILE}"
+write_audit_marker \
+    "running" \
+    "${JOB_ID}" \
+    "${BACKUP}" \
+    "${ACTOR}" \
+    "${STARTED}" \
+    ""
 
 write_status \
     "running" \
@@ -111,17 +133,15 @@ echo "${BACKUP_PATH}"
 
 if "${RESTORE_SCRIPT}" "${BACKUP_PATH}"; then
 
-    cat > "${AUDIT_MARKER_FILE}" <<EOF
-{
-  "status": "success",
-  "job_id": "${JOB_ID}",
-  "backup": "${BACKUP}",
-  "actor": "${ACTOR}",
-  "started": "$(date -Iseconds)"
-}
-EOF
+    COMPLETED="$(date -Iseconds)"
 
-    chmod 600 "${AUDIT_MARKER_FILE}"
+    write_audit_marker \
+        "success" \
+        "${JOB_ID}" \
+        "${BACKUP}" \
+        "${ACTOR}" \
+        "${STARTED}" \
+        "${COMPLETED}"
 
     write_status \
         "success" \
@@ -129,27 +149,39 @@ EOF
         "${BACKUP}" \
         "Restore completed successfully"
 
+    echo
+    echo "Restore completed successfully."
+    echo "Restarting backend to process restore audit..."
+    echo
+
+    systemctl restart tilt-backend
+
     exit 0
 
 else
 
-    cat > "${AUDIT_MARKER_FILE}" <<EOF
-{
-  "status": "failed",
-  "job_id": "${JOB_ID}",
-  "backup": "${BACKUP}",
-  "actor": "${ACTOR}",
-  "started": "$(date -Iseconds)"
-}
-EOF
+    COMPLETED="$(date -Iseconds)"
 
-    chmod 600 "${AUDIT_MARKER_FILE}"
+    write_audit_marker \
+        "failed" \
+        "${JOB_ID}" \
+        "${BACKUP}" \
+        "${ACTOR}" \
+        "${STARTED}" \
+        "${COMPLETED}"
 
     write_status \
         "failed" \
         "${JOB_ID}" \
         "${BACKUP}" \
         "Restore failed and rollback was attempted"
+
+    echo
+    echo "Restore failed."
+    echo "Restarting backend to process restore audit..."
+    echo
+
+    systemctl restart tilt-backend
 
     exit 1
 
