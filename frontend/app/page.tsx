@@ -508,6 +508,25 @@ useEffect(() => {
 
               </button>
 
+              {/* BACKUP & RESTORE */}
+
+{isSuperAdmin && (
+
+  <button
+    onClick={() =>
+      router.push(
+        "/admin/backup"
+      )
+    }
+    className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg transition"
+  >
+
+    Sauvegarde
+
+  </button>
+
+)}
+
 
               {/* IMPORTANT MESSAGE */}
 
@@ -534,6 +553,8 @@ useEffect(() => {
       )}
 
 
+
+
       {/* ---------------------------------------------------------
           HOME DEVICES
       --------------------------------------------------------- */}
@@ -550,7 +571,6 @@ useEffect(() => {
         ))}
 
       </section>
-
 
       {/* ---------------------------------------------------------
           ZONES
@@ -616,7 +636,7 @@ useEffect(() => {
   </div>
 
   <div className="mt-1">
-    Version 1.3
+    Version 1.4
   </div>
 
 </footer>
