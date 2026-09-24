@@ -97,41 +97,67 @@ useEffect(() => {
     return;
   }
 
-  const interval =
-    setInterval(async () => {
+  let cancelled = false;
 
-      try {
+  const poll = async () => {
 
-        const status =
-          await apiFetch(
-            "/admin/backup/restore/status"
-          );
+    try {
 
-        setRestoreStatus(status);
-
-        if (
-          status.status !== "queued" &&
-          status.status !== "running"
-        ) {
-          clearInterval(interval);
-          await loadBackups();
-        }
-
-      } catch (err) {
-
-        console.error(
-          "Failed to get restore status",
-          err
+      const status =
+        await apiFetch(
+          "/admin/backup/restore/status"
         );
 
+      if (cancelled) {
+        return;
       }
 
-    }, 2000);
+      setRestoreStatus(status);
 
-  return () =>
-    clearInterval(interval);
+      if (
+        status.status === "success" ||
+        status.status === "failed"
+      ) {
 
-}, [restoreStatus]);
+        await loadBackups();
+
+        return;
+      }
+
+    } catch (err) {
+
+      /*
+       * The backend is deliberately restarted
+       * after the restore completes, so a temporary
+       * connection failure is expected.
+       *
+       * Keep polling rather than treating it as
+       * a restore failure.
+       */
+
+      console.log(
+        "Restore status temporarily unavailable; retrying..."
+      );
+
+    }
+
+    if (!cancelled) {
+      setTimeout(poll, 2000);
+    }
+
+  };
+
+  const timer =
+    setTimeout(poll, 1000);
+
+  return () => {
+
+    cancelled = true;
+    clearTimeout(timer);
+
+  };
+
+}, [restoreStatus?.status]);
 
 
 async function runBackup() {

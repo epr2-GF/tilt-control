@@ -155,6 +155,7 @@ if "${RESTORE_SCRIPT}" "${BACKUP_PATH}"; then
     echo
 
     pm2 restart tilt-backend --update-env
+    
 
     exit 0
 
