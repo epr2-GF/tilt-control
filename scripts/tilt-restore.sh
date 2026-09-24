@@ -21,34 +21,34 @@ FILES=(
     "src/data/sessionActivity.json"
 )
 
-cleanup_on_error() {
-    echo
-    echo "======================================"
-    echo " RESTORE FAILED"
-    echo "======================================"
-    echo
-    echo "The live application may have been modified."
-    echo "Safety backup:"
-    echo "${SAFETY_DIR}"
-    echo
-    exit 1
-}
+ROLLBACK_NEEDED=false
 
 rollback() {
+
     echo
     echo "======================================"
     echo " ROLLING BACK"
     echo "======================================"
     echo
 
+    set +e
+
     pm2 stop tilt-backend >/dev/null 2>&1 || true
 
     for FILE in "${FILES[@]}"; do
+
         if [ -f "${SAFETY_DIR}/${FILE}" ]; then
+
             mkdir -p "${SOURCE}/$(dirname "${FILE}")"
-            cp -a "${SAFETY_DIR}/${FILE}" "${SOURCE}/${FILE}"
+
+            cp -a \
+                "${SAFETY_DIR}/${FILE}" \
+                "${SOURCE}/${FILE}"
+
             echo "  Restored ${FILE}"
+
         fi
+
     done
 
     chmod 600 "${SOURCE}/.env"
@@ -56,11 +56,34 @@ rollback() {
 
     pm2 restart tilt-backend --update-env >/dev/null 2>&1 || true
 
+    set -e
+
     echo
     echo "Rollback completed."
+    echo
+
 }
 
-trap cleanup_on_error ERR
+restore_failed() {
+
+    echo
+    echo "======================================"
+    echo " RESTORE FAILED"
+    echo "======================================"
+    echo
+
+    if [ "${ROLLBACK_NEEDED}" = true ]; then
+        rollback
+    fi
+
+    echo "Safety backup:"
+    echo "${SAFETY_DIR}"
+    echo
+
+    exit 1
+}
+
+trap restore_failed ERR
 
 echo "======================================"
 echo " Tilt Server Production RESTORE"
@@ -76,49 +99,53 @@ echo "Safety backup:"
 echo "${SAFETY_DIR}"
 echo
 
-# --------------------------------------------------
-# Basic checks
-# --------------------------------------------------
-
 if [ -z "${BACKUP_DIR}" ]; then
+
     echo "ERROR: No backup specified."
     echo
     echo "Usage:"
     echo "  $0 /mnt/tilt-server-backup/weekly/YYYY-MM-DD_HH-MM-SS"
     exit 1
+
 fi
 
 if [ ! -d "${BACKUP_DIR}" ]; then
+
     echo "ERROR: Backup directory does not exist:"
     echo "${BACKUP_DIR}"
     exit 1
+
 fi
 
 if ! mountpoint -q "${BACKUP_ROOT}"; then
+
     echo "ERROR: Backup filesystem is not mounted:"
     echo "${BACKUP_ROOT}"
     exit 1
+
 fi
 
 if [ ! -d "${SOURCE}" ]; then
+
     echo "ERROR: Live application directory does not exist:"
     echo "${SOURCE}"
     exit 1
+
 fi
 
 if [ ! -f "${BACKUP_DIR}/SHA256SUMS" ]; then
+
     echo "ERROR: SHA256SUMS not found."
     exit 1
+
 fi
 
 if [ ! -f "${BACKUP_DIR}/manifest.json" ]; then
+
     echo "ERROR: manifest.json not found."
     exit 1
-fi
 
-# --------------------------------------------------
-# Verify backup
-# --------------------------------------------------
+fi
 
 echo "Verifying selected backup..."
 
@@ -130,26 +157,22 @@ echo "Verifying selected backup..."
 echo
 echo "Backup verification successful."
 
-# --------------------------------------------------
-# Check required files
-# --------------------------------------------------
-
 echo
 echo "Checking required files..."
 
 for FILE in "${FILES[@]}"; do
+
     if [ ! -f "${BACKUP_DIR}/${FILE}" ]; then
+
         echo "ERROR: Missing backup file:"
         echo "${FILE}"
         exit 1
+
     fi
 
     echo "  OK  ${FILE}"
-done
 
-# --------------------------------------------------
-# Create safety backup
-# --------------------------------------------------
+done
 
 echo
 echo "Creating pre-restore safety backup..."
@@ -161,27 +184,32 @@ chmod 700 "${SAFETY_ROOT}"
 chmod 700 "${SAFETY_DIR}"
 
 for FILE in "${FILES[@]}"; do
+
     if [ ! -f "${SOURCE}/${FILE}" ]; then
+
         echo "ERROR: Missing live file:"
         echo "${SOURCE}/${FILE}"
         exit 1
+
     fi
 
     mkdir -p "${SAFETY_DIR}/$(dirname "${FILE}")"
-    cp -a "${SOURCE}/${FILE}" "${SAFETY_DIR}/${FILE}"
+
+    cp -a \
+        "${SOURCE}/${FILE}" \
+        "${SAFETY_DIR}/${FILE}"
 
     echo "  OK  ${FILE}"
+
 done
 
 chmod 600 "${SAFETY_DIR}/.env"
 chmod 600 "${SAFETY_DIR}"/src/data/*.json
 
+ROLLBACK_NEEDED=true
+
 echo
 echo "Safety backup created."
-
-# --------------------------------------------------
-# Stop backend
-# --------------------------------------------------
 
 echo
 echo "Stopping Tilt backend..."
@@ -190,26 +218,23 @@ pm2 stop tilt-backend
 
 echo "  Backend stopped."
 
-# --------------------------------------------------
-# Restore files
-# --------------------------------------------------
-
 echo
 echo "Restoring application data..."
 
 for FILE in "${FILES[@]}"; do
+
     mkdir -p "${SOURCE}/$(dirname "${FILE}")"
-    cp -a "${BACKUP_DIR}/${FILE}" "${SOURCE}/${FILE}"
+
+    cp -a \
+        "${BACKUP_DIR}/${FILE}" \
+        "${SOURCE}/${FILE}"
 
     echo "  OK  ${FILE}"
+
 done
 
 chmod 600 "${SOURCE}/.env"
 chmod 600 "${SOURCE}"/src/data/*.json
-
-# --------------------------------------------------
-# Verify restored files
-# --------------------------------------------------
 
 echo
 echo "Verifying restored files..."
@@ -218,66 +243,63 @@ echo "Verifying restored files..."
     cd "${SOURCE}"
 
     for FILE in "${FILES[@]}"; do
-        EXPECTED="$(grep -F "  ${FILE}" "${BACKUP_DIR}/SHA256SUMS" | awk '{print $1}')"
-        ACTUAL="$(sha256sum "${FILE}" | awk '{print $1}')"
+
+        EXPECTED="$(
+            grep -F "  ${FILE}" \
+                "${BACKUP_DIR}/SHA256SUMS" |
+            awk '{print $1}'
+        )"
+
+        ACTUAL="$(
+            sha256sum "${FILE}" |
+            awk '{print $1}'
+        )"
 
         if [ -z "${EXPECTED}" ]; then
+
             echo "ERROR: No checksum found for ${FILE}"
             exit 1
+
         fi
 
         if [ "${EXPECTED}" != "${ACTUAL}" ]; then
+
             echo "ERROR: Checksum mismatch:"
             echo "       ${FILE}"
             echo "       Expected: ${EXPECTED}"
             echo "       Actual:   ${ACTUAL}"
             exit 1
+
         fi
 
         echo "  OK  ${FILE}"
+
     done
 )
 
 echo
 echo "Restored files verified."
 
-# --------------------------------------------------
-# Restart backend
-# --------------------------------------------------
-
 echo
 echo "Starting Tilt backend..."
 
-if ! pm2 restart tilt-backend --update-env; then
-    echo
-    echo "ERROR: Backend failed to restart."
-    rollback
-    exit 1
-fi
+pm2 restart tilt-backend --update-env
 
 sleep 5
-
-# --------------------------------------------------
-# Verify PM2 process
-# --------------------------------------------------
 
 echo
 echo "Checking backend status..."
 
-STATUS="$(pm2 jlist | grep -o '"name":"tilt-backend"[^}]*' | grep -o '"status":"[^"]*"' | head -1 || true)"
-
 if ! pm2 status | grep -q "tilt-backend.*online"; then
-    echo
+
     echo "ERROR: tilt-backend is not online."
-    rollback
     exit 1
+
 fi
 
 echo "  OK  tilt-backend online."
 
-# --------------------------------------------------
-# Keep safety backup
-# --------------------------------------------------
+ROLLBACK_NEEDED=false
 
 echo
 echo "======================================"

@@ -15,6 +15,9 @@ import sessionRoutes from "./routes/sessionRoutes";
 import deviceAdminRoutes from "./routes/deviceAdminRoutes";
 import { readUsers } from "./data/usersStore";
 import backupRoutes from "./routes/backupRoutes";
+import fs from "fs";
+import path from "path";
+import { writeAudit } from "./services/auditService";
 
 const app = express();
 
@@ -22,6 +25,63 @@ const app = express();
 // 🔐 Ensure protected superadmin exists
 readUsers();
 
+function processRestoreAuditMarker() {
+
+  const markerFile =
+    "/var/lib/tilt-control/restore/audit-marker";
+
+  if (!fs.existsSync(markerFile)) {
+    return;
+  }
+
+  try {
+
+    const marker =
+      JSON.parse(
+        fs.readFileSync(
+          markerFile,
+          "utf8"
+        )
+      );
+
+    const success =
+      marker.status !== "failed";
+
+    writeAudit({
+      severity: success
+        ? "admin"
+        : "error",
+      type: "admin",
+      event: success
+        ? "Application restore completed"
+        : "Application restore failed",
+      actor:
+        marker.actor || "unknown",
+      role: "superadmin",
+      details: {
+        backup:
+          marker.backup,
+        jobId:
+          marker.job_id,
+        restoreStarted:
+          marker.started,
+      },
+    });
+
+    fs.unlinkSync(markerFile);
+
+  } catch (err) {
+
+    console.error(
+      "Unable to process restore audit marker:",
+      err
+    );
+
+  }
+
+}
+
+processRestoreAuditMarker();
 
 app.use(express.json());
 
