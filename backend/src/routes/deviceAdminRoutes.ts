@@ -53,17 +53,19 @@ router.post("/", async (req, res) => {
     reloadDeviceEntities();
     await refreshCurrentStates();
 
-    writeAudit({
-      severity: "info",
-      event: "DEVICE_CREATED",
-      actor: (req as any).user.username,
-      details: {
-        id: device.id,
-        name: device.name,
-        entityId: device.entityId,
-        zones: device.zones,
-      },
-    });
+writeAudit({
+  severity: "info",
+  event: "DEVICE_CREATED",
+  actor: (req as any).user.username,
+  target: device.name,
+  role: (req as any).user.role,
+  details: {
+    id: device.id,
+    name: device.name,
+    entityId: device.entityId,
+    zones: device.zones,
+  },
+});
 
     return res.status(201).json(device);
   } catch (error) {
@@ -174,11 +176,13 @@ router.delete("/:id", async (req, res) => {
   reloadDeviceEntities();
   await refreshCurrentStates();
 
-  writeAudit({
-    severity: "warning",
-    event: "DEVICE_DELETED",
-    actor: (req as any).user.username,
-    details: {
+writeAudit({
+  severity: "warning",
+  event: "DEVICE_DELETED",
+  actor: (req as any).user.username,
+  target: device.name,
+  role: (req as any).user.role,
+  details: {
       id: device.id,
       name: device.name,
       entityId: device.entityId,
