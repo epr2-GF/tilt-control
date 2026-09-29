@@ -157,6 +157,99 @@ export async function apiFetch(
 
 
 /* ---------------------------------------------------------
+   RAW RESPONSE FETCH
+   Used for endpoints that return files/images rather than JSON.
+--------------------------------------------------------- */
+
+export async function apiFetchRaw(
+  endpoint: string,
+  options: RequestInit = {},
+  tokenOverride?: string
+) {
+  const token =
+    tokenOverride ?? getToken();
+
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string> || {}),
+  };
+
+  if (token) {
+    headers.Authorization =
+      `Bearer ${token}`;
+  }
+
+  const baseUrl =
+    API_URL.endsWith("/")
+      ? API_URL.slice(0, -1)
+      : API_URL;
+
+  const cleanEndpoint =
+    endpoint.startsWith("/")
+      ? endpoint
+      : `/${endpoint}`;
+
+  const res = await fetch(
+    `${baseUrl}${cleanEndpoint}`,
+    {
+      ...options,
+      headers,
+      cache: "no-store",
+    }
+  );
+
+  if (res.status === 401) {
+
+    const error =
+      await res.json()
+        .catch(() => ({}));
+
+    const message =
+      error.message ||
+      "Session non autorisée ou expirée";
+
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/login"
+    ) {
+
+      console.warn(
+        "Unauthorized API response - resetting session."
+      );
+
+      localStorage.removeItem(
+        "smart-site-token"
+      );
+
+      sessionStorage.setItem(
+        "logout-message",
+        message
+      );
+
+      window.location.href =
+        "/login";
+    }
+
+    throw new Error(message);
+  }
+
+  if (!res.ok) {
+
+    const error =
+      await res.json()
+        .catch(() => ({}));
+
+    throw new Error(
+      error.message ||
+      error.error ||
+      "API Error"
+    );
+  }
+
+  return res;
+}
+
+
+/* ---------------------------------------------------------
    AUTH
 --------------------------------------------------------- */
 

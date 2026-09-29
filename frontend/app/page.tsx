@@ -3,16 +3,76 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, Users, Map } from "lucide-react";
+import { LogOut, Users, Map, Camera } from "lucide-react";
 import ControlCard from "@/components/ControlCard";
-import { apiFetch } from "@/lib/api";
+import {
+  apiFetch,
+  apiFetchRaw,
+} from "@/lib/api";
 import DeviceRenderer from "@/components/DeviceRenderer";
+
 
 export default function HomePage() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [devices, setDevices] = useState<any[]>([]);
-  const [siteMessage, setSiteMessage] = useState("");
+const [siteMessage, setSiteMessage] = useState("");
+
+const [gateImage, setGateImage] =
+  useState<string | null>(null);
+
+const [gateImageTime, setGateImageTime] =
+  useState<string | null>(null);
+
+const [gateImageLoading, setGateImageLoading] =
+  useState(false);
+
+const [gateImageError, setGateImageError] =
+  useState<string | null>(null);
+
+
+async function captureGateCamera() {
+
+  try {
+
+    setGateImageLoading(true);
+    setGateImageError(null);
+
+    const response =
+      await apiFetchRaw(
+        "/camera/gate"
+      );
+
+    const blob =
+      await response.blob();
+
+    const imageUrl =
+      URL.createObjectURL(blob);
+
+    setGateImage(imageUrl);
+
+    setGateImageTime(
+      new Date().toLocaleTimeString("fr-FR")
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Failed capturing gate camera",
+      error
+    );
+
+    setGateImageError(
+      "Impossible de récupérer l'image du portail."
+    );
+
+  } finally {
+
+    setGateImageLoading(false);
+
+  }
+
+}
 
   /* -------------------------------------------------------------
       🛡️ STRICT AUTH GUARD SYSTEM
@@ -432,6 +492,37 @@ useEffect(() => {
 
               </button>
 
+{/* GATE CAMERA */}
+
+{isAdmin && (
+
+  <button
+    onClick={captureGateCamera}
+    disabled={gateImageLoading}
+    className="
+      flex
+      items-center
+      gap-2
+      px-4
+      py-2
+      bg-emerald-600
+      hover:bg-emerald-500
+      disabled:bg-slate-700
+      disabled:text-slate-500
+      rounded-lg
+      transition
+    "
+  >
+
+    <Camera size={16} />
+
+    {gateImageLoading
+      ? "Capture..."
+      : "Vérifier le portail"}
+
+  </button>
+
+)}
 
               {/* AUDIT */}
 
@@ -636,7 +727,114 @@ useEffect(() => {
   </div>
 
   <div className="mt-1">
-    Version 1.4
+    Version 1.5
+
+    {gateImage && (
+
+  <div
+    className="
+      fixed
+      inset-0
+      z-50
+      bg-black/80
+      flex
+      items-center
+      justify-center
+      p-4
+    "
+    onClick={() => {
+      URL.revokeObjectURL(gateImage);
+      setGateImage(null);
+    }}
+  >
+
+    <div
+      className="
+        relative
+        max-w-6xl
+        max-h-[90vh]
+        w-full
+        flex
+        flex-col
+        items-center
+        gap-3
+      "
+      onClick={(event) =>
+        event.stopPropagation()
+      }
+    >
+
+      <img
+        src={gateImage}
+        alt="Vue du portail"
+        className="
+          max-w-full
+          max-h-[80vh]
+          object-contain
+          rounded-lg
+          shadow-2xl
+        "
+      />
+
+      <div
+        className="
+          flex
+          items-center
+          gap-4
+          text-white
+          text-sm
+        "
+      >
+
+        <span>
+          Portail — {gateImageTime}
+        </span>
+
+        <button
+          onClick={() => {
+            URL.revokeObjectURL(gateImage);
+            setGateImage(null);
+          }}
+          className="
+            px-4
+            py-2
+            bg-red-600
+            hover:bg-red-500
+            rounded-lg
+            transition
+          "
+        >
+          Fermer
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+)}
+{gateImageError && (
+
+  <div
+    className="
+      fixed
+      bottom-6
+      left-1/2
+      -translate-x-1/2
+      z-[60]
+      bg-red-700
+      text-white
+      px-5
+      py-3
+      rounded-lg
+      shadow-xl
+    "
+  >
+    {gateImageError}
+  </div>
+
+)}
   </div>
 
 </footer>

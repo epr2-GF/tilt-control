@@ -18,6 +18,7 @@ import backupRoutes from "./routes/backupRoutes";
 import fs from "fs";
 import path from "path";
 import { writeAudit } from "./services/auditService";
+import cameraRoutes from "./routes/cameraRoutes";
 
 const app = express();
 
@@ -140,6 +141,10 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/admin/backup", backupRoutes);
 app.use("/api/status", statusRoutes);
 app.use("/api/session", authMiddleware, sessionRoutes);
+app.use(
+  "/api/camera",
+  cameraRoutes
+);
 app.use(
   "/api/admin/devices",
   authMiddleware,
