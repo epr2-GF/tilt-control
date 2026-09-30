@@ -37,7 +37,9 @@ type DeviceFormData = {
     | "sensor"
     | "onOff"
     | "lock"
-    | "minilog";
+    | "minilog"
+    | "dimmer";
+
   statusTrue: string;
   statusFalse: string;
   zones: string[];
@@ -415,7 +417,12 @@ if (
             <option value="sensor">
               Sensor
             </option>
-          </select>
+
+<option value="dimmer">
+  Dimmer éclairage 0-10v
+</option>
+
+                      </select>
         </div>
 
 {form.cardType === "minilog" && (

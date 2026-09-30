@@ -27,7 +27,8 @@ cardType:
   | "sensor"
   | "onOff"
   | "lock"
-  | "minilog";
+  | "minilog"
+  | "dimmer";
 
   statusTrue?: string;
 

@@ -54,66 +54,59 @@ export const homeAssistantService = {
    * some devices are momentary, use contactors, or automatically
    * change their state after receiving a command.
    */
-  async triggerService(
-    domain: string,
-    service: string,
-    entityId: string
-  ) {
-    try {
-      /*
-       * First confirm that the entity exists.
-       */
-      await this.getEntityState(entityId);
+async triggerService(
+  domain: string,
+  service: string,
+  entityId: string,
+  serviceData: Record<string, any> = {}
+) {
+  try {
 
-      /*
-       * Entity exists, so send the command.
-       */
-      const response = await fetch(
-        `${HA_URL}/api/services/${domain}/${service}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${HA_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            entity_id: entityId,
-          }),
-        }
-      );
+    await this.getEntityState(entityId);
 
-      if (!response.ok) {
-        throw new Error(
-          `HA API service call failed: ${domain}.${service} on ${entityId} (HTTP ${response.status})`
-        );
+    const response = await fetch(
+      `${HA_URL}/api/services/${domain}/${service}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${HA_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          ...serviceData,
+        }),
       }
+    );
 
-      /*
-       * At this point HA has accepted the command.
-       *
-       * We intentionally do not inspect the returned state.
-       */
-      let result: unknown = null;
-
-      const text = await response.text();
-
-      if (text) {
-        try {
-          result = JSON.parse(text);
-        } catch {
-          result = text;
-        }
-      }
-
-      return result;
-    } catch (error) {
-      console.error(
-        `Error triggering HA service ${domain}.${service} on ${entityId}:`,
-        error
+    if (!response.ok) {
+      throw new Error(
+        `HA API service call failed: ${domain}.${service} on ${entityId} (HTTP ${response.status})`
       );
-
-      throw error;
     }
-  },
-};
 
+    let result: unknown = null;
+
+    const text = await response.text();
+
+    if (text) {
+      try {
+        result = JSON.parse(text);
+      } catch {
+        result = text;
+      }
+    }
+
+    return result;
+
+  } catch (error) {
+
+    console.error(
+      `Error triggering HA service ${domain}.${service} on ${entityId}:`,
+      error
+    );
+
+    throw error;
+  }
+},
+}

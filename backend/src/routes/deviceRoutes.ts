@@ -190,6 +190,12 @@ router.post(
 
       let entityId = savedDevice.entityId;
       let haService = action;
+      if (
+  savedDevice.cardType === "dimmer" &&
+  action === "set_brightness"
+) {
+  haService = "turn_on";
+}
 
       /*
        * ON / OFF CARD
@@ -239,6 +245,50 @@ router.post(
           });
         }
       }
+
+/*
+ * ---------------------------------------------------------
+ * DIMMER
+ * ---------------------------------------------------------
+ *
+ * Shelly 0-10V lighting dimmer.
+ *
+ * action:
+ *   set_brightness
+ *
+ * brightness:
+ *   0-100 (%)
+ */
+
+let serviceData:
+  Record<string, any> = {};
+
+if (
+  savedDevice.cardType === "dimmer" &&
+  action === "set_brightness"
+) {
+
+  const brightness =
+    Number(req.body.brightness);
+
+  if (
+    !Number.isFinite(brightness) ||
+    brightness < 0 ||
+    brightness > 100
+  ) {
+    return res.status(400).json({
+      code: "INVALID_BRIGHTNESS",
+      message:
+        "La luminosité doit être comprise entre 0 et 100 %",
+    });
+  }
+
+  serviceData = {
+    brightness_pct:
+      Math.round(brightness),
+  };
+}
+
 
       /*
        * ---------------------------------------------------------
@@ -359,7 +409,8 @@ if (haService === "toggle") {
         await homeAssistantService.triggerService(
           domain,
           haService,
-          entityId
+          entityId,
+          serviceData
         );
 
 /*
@@ -418,13 +469,18 @@ if (appLogAction) {
         actor: user.username,
         target: savedDevice.name,
 
-        details: {
-          deviceId: savedDevice.id,
-          entityId,
-          action: haService,
-          cardType: savedDevice.cardType,
-          result: "success",
-        },
+details: {
+  deviceId: savedDevice.id,
+  entityId,
+  action,
+  cardType: savedDevice.cardType,
+  brightness:
+    savedDevice.cardType === "dimmer" &&
+    action === "set_brightness"
+      ? Math.round(Number(req.body.brightness))
+      : undefined,
+  result: "success",
+},
 
         role: user.role,
       });

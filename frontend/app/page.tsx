@@ -804,7 +804,7 @@ useEffect(() => {
             transition
           "
         >
-          Fermer
+          Quitter
         </button>
 
       </div>

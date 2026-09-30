@@ -337,6 +337,29 @@ function getDescription(log: AuditLog) {
     const action =
       details.action || "";
 
+    // Friendly names for dimmer actions
+    if (details.cardType === "dimmer") {
+      if (action === "turn_on") {
+        return `${device} → ON`;
+      }
+
+      if (action === "turn_off") {
+        return `${device} → OFF`;
+      }
+
+      if (action === "set_brightness") {
+        const brightness =
+          typeof details.brightness === "number"
+            ? details.brightness
+            : null;
+
+        return brightness !== null
+          ? `${device} → Luminosité → ${brightness} %`
+          : `${device} → Luminosité`;
+      }
+    }
+
+    // All other devices remain unchanged
     return `${device}${action ? ` → ${action}` : ""}`;
   }
 
