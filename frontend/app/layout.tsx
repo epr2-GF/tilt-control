@@ -16,12 +16,46 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "Smart Site Control",
   description: "Industrial Site Management System",
-manifest: "/manifest.webmanifest",
-appleWebApp: {
-  capable: true,
-  statusBarStyle: "black-translucent",
-  title: "Smart Site Control",
-},
+  manifest: "/manifest.webmanifest",
+
+  icons: {
+    icon: [
+      {
+        url: "/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        url: "/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        url: "/icon-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icon-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+
+    apple: [
+      {
+        url: "/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
+
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Smart Site Control",
+  },
 };
 
 export const viewport: Viewport = { themeColor: "#020617" };
