@@ -8,6 +8,7 @@ import LockCard from "@/components/LockCard";
 import { useDevices } from "@/context/DeviceContext";
 import MiniLogCard from "@/components/MiniLogCard";
 import DimmerCard from "@/components/DimmerCard";
+import RunScriptCard from "@/components/RunScriptCard";
 
 import {
   Camera,
@@ -27,6 +28,8 @@ import {
   Unlock,
   Warehouse,
   ArrowRightLeft,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react";
 
 function getDeviceIcon(iconName: string) {
@@ -48,6 +51,8 @@ function getDeviceIcon(iconName: string) {
     gauge: Gauge,
     settings: Settings,
     gateslide: ArrowRightLeft,
+     "shield-check": ShieldCheck,
+    "shield-off": ShieldOff,
   };
 
   return icons[iconName] || CircleHelp;
@@ -140,6 +145,24 @@ case "dimmer":
       />
     </div>
   );
+
+    case "runScript":
+      return (
+        <div
+          key={device.id}
+          className={
+            disabled
+              ? "bg-orange-950/30 border border-orange-700/60 rounded-xl p-1"
+              : ""
+          }
+        >
+          <RunScriptCard
+            device={device}
+            icon={icon}
+            disabled={disabled}
+          />
+        </div>
+      );
 
     case "binary":
       return (

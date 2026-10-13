@@ -246,6 +246,39 @@ router.post(
         }
       }
 
+      /*
+       * ---------------------------------------------------------
+       * RUN SCRIPT
+       * ---------------------------------------------------------
+       *
+       * Only the configured Home Assistant script
+       * can be executed by this device.
+       *
+       * action = "run_script"
+       * HA service = script.turn_on
+       */
+
+      if (savedDevice.cardType === "runScript") {
+        if (action !== "run_script") {
+          return res.status(400).json({
+            code: "INVALID_SCRIPT_ACTION",
+            message: "Action invalide pour une carte Run Script",
+          });
+        }
+
+        if (
+          typeof entityId !== "string" ||
+          !entityId.startsWith("script.")
+        ) {
+          return res.status(400).json({
+            code: "INVALID_SCRIPT_ENTITY",
+            message: "Une entité script.* de Home Assistant est obligatoire",
+          });
+        }
+
+        haService = "turn_on";
+      }
+
 /*
  * ---------------------------------------------------------
  * DIMMER
@@ -339,7 +372,10 @@ if (haService === "toggle") {
 
 }
 
-if (haService === "turn_on") {
+if (
+  haService === "turn_on" &&
+  savedDevice.cardType !== "runScript"
+) {
   expectedState = "on";
 }
 
@@ -447,14 +483,15 @@ const appLogActions: Record<string, string> = {
 const appLogAction =
   appLogActions[haService];
 
-if (appLogAction) {
-
+if (
+  appLogAction &&
+  savedDevice.cardType !== "runScript"
+) {
   addDeviceStatusLog(
     entityId,
     appLogAction,
     user.username
   );
-
 }
 
       /*

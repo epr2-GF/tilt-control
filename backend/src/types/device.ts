@@ -28,7 +28,8 @@ cardType:
   | "onOff"
   | "lock"
   | "minilog"
-  | "dimmer";
+  | "dimmer"
+  | "runScript";
 
   statusTrue?: string;
 

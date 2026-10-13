@@ -18,6 +18,8 @@ import {
   ToggleLeft,
   Unlock,
   Warehouse,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -38,7 +40,8 @@ type DeviceFormData = {
     | "onOff"
     | "lock"
     | "minilog"
-    | "dimmer";
+    | "dimmer"
+    | "runScript";
 
   statusTrue: string;
   statusFalse: string;
@@ -88,6 +91,16 @@ const iconOptions = [
     value: "gateslide",
     label: "Portail coulisse",
     icon: ArrowRightLeft,
+  },
+    {
+    value: "shield-check",
+    label: "Alarme armée",
+    icon: ShieldCheck,
+  },
+  {
+    value: "shield-off",
+    label: "Alarme désarmée",
+    icon: ShieldOff,
   },
 ];
 
@@ -420,6 +433,10 @@ if (
 
 <option value="dimmer">
   Dimmer éclairage 0-10v
+</option>
+
+<option value="runScript">
+  Run Script
 </option>
 
                       </select>

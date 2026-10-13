@@ -359,8 +359,30 @@ function getDescription(log: AuditLog) {
       }
     }
 
-    // All other devices remain unchanged
-    return `${device}${action ? ` → ${action}` : ""}`;
+    // Run Script
+    if (
+      details.cardType === "runScript" &&
+      action === "run_script"
+    ) {
+      return `${device} → Run Script`;
+    }
+
+    // Friendly names for other common actions
+    const friendlyActions: Record<string, string> = {
+      turn_on: "ON",
+      turn_off: "OFF",
+      toggle: "TOGGLE",
+      lock: "LOCK",
+      unlock: "UNLOCK",
+      open_cover: "OPEN",
+      close_cover: "CLOSE",
+      stop_cover: "STOP",
+    };
+
+    const friendlyAction =
+      friendlyActions[action] || action;
+
+    return `${device}${action ? ` → ${friendlyAction}` : ""}`;
   }
 
   // Failed device control
