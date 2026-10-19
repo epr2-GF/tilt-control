@@ -3,7 +3,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, Users, Map, Camera } from "lucide-react";
+import {
+  LogOut,
+  Users,
+  Map,
+  Camera,
+  Eye,
+  ClipboardList,
+  Settings,
+  ListChecks,
+  Activity,
+  DatabaseBackup,
+  MessageSquare,
+} from "lucide-react";
 import ControlCard from "@/components/ControlCard";
 import {
   apiFetch,
@@ -461,181 +473,125 @@ useEffect(() => {
             icon={<Users size={20} />}
           >
 
-            <div className="flex flex-wrap gap-3">
 
 
-              {/* USERS */}
-
-              <button
-                onClick={() =>
-                  router.push("/admin")
-                }
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition"
-              >
-
-                Utilisateurs
-
-              </button>
 
 
-              {/* CAMERAS */}
 
-              <button
-                onClick={() =>
-                  window.location.href =
-                    "reolink://"
-                }
-                className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg transition"
-              >
+<div className="grid grid-cols-6 sm:grid-cols-7 lg:grid-cols-8 gap-2">
 
-                Cameras
-
-              </button>
-
-{/* GATE CAMERA */}
-
-{isAdmin && (
-
+  {/* USERS */}
   <button
+    type="button"
+    title="Utilisateurs"
+    aria-label="Utilisateurs"
+    onClick={() => router.push("/admin")}
+    className="aspect-square w-full flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 transition"
+  >
+    <Users size={39} />
+  </button>
+
+  {/* CAMERAS */}
+  <button
+    type="button"
+    title="Caméras"
+    aria-label="Caméras"
+    onClick={() => {
+      window.location.href = "reolink://";
+    }}
+    className="aspect-square w-full flex items-center justify-center rounded-xl bg-green-600 hover:bg-green-500 transition"
+  >
+    <Camera size={39} />
+  </button>
+
+  {/* GATE CAMERA */}
+  <button
+    type="button"
+    title="Vérifier le portail"
+    aria-label="Vérifier le portail"
     onClick={captureGateCamera}
     disabled={gateImageLoading}
-    className="
-      flex
-      items-center
-      gap-2
-      px-4
-      py-2
-      bg-emerald-600
-      hover:bg-emerald-500
-      disabled:bg-slate-700
-      disabled:text-slate-500
-      rounded-lg
-      transition
-    "
+    className="aspect-square w-full flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 transition"
   >
-
-    <Camera size={16} />
-
-    {gateImageLoading
-      ? "Capture..."
-      : "Vérifier le portail"}
-
+    <Eye size={39} />
   </button>
 
-)}
+  {/* AUDIT */}
+  {isSuperAdmin && (
+    <button
+      type="button"
+      title="Journal"
+      aria-label="Journal"
+      onClick={() => router.push("/admin/audit")}
+      className="aspect-square w-full flex items-center justify-center rounded-xl bg-purple-600 hover:bg-purple-500 transition"
+    >
+      <ClipboardList size={39} />
+    </button>
+  )}
 
-              {/* AUDIT */}
+  {/* DEVICES */}
+  {isSuperAdmin && (
+    <button
+      type="button"
+      title="Appareils"
+      aria-label="Appareils"
+      onClick={() => router.push("/admin/devices")}
+      className="aspect-square w-full flex items-center justify-center rounded-xl bg-yellow-600 hover:bg-yellow-500 transition"
+    >
+      <Settings size={39} />
+    </button>
+  )}
 
-              {isSuperAdmin && (
+  {/* DEVICE LOG */}
+  {isSuperAdmin && (
+    <button
+      type="button"
+      title="Journal appareils"
+      aria-label="Journal appareils"
+      onClick={() => router.push("/admin/device-log")}
+      className="aspect-square w-full flex items-center justify-center rounded-xl bg-cyan-600 hover:bg-cyan-500 transition"
+    >
+      <ListChecks size={39} />
+    </button>
+  )}
 
-                <button
-                  onClick={() =>
-                    router.push(
-                      "/admin/audit"
-                    )
-                  }
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition"
-                >
-
-                  Journal
-
-                </button>
-
-              )}
-
-
-              {/* DEVICES */}
-
-              {isSuperAdmin && (
-
-                <button
-                  onClick={() =>
-                    router.push(
-                      "/admin/devices"
-                    )
-                  }
-                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition"
-                >
-
-                  Appareils
-
-                </button>
-
-              )}
-
-{/* DEVICE LOG */}
-
-{isSuperAdmin && (
-
+  {/* STATUS */}
   <button
-    onClick={() =>
-      router.push(
-        "/admin/device-log"
-      )
-    }
-    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg transition"
+    type="button"
+    title="Statut"
+    aria-label="Statut"
+    onClick={() => router.push("/admin/status")}
+    className="aspect-square w-full flex items-center justify-center rounded-xl bg-orange-600 hover:bg-orange-500 transition"
   >
-
-    Journal appareils
-
+    <Activity size={39} />
   </button>
 
-)}
+  {/* BACKUP & RESTORE */}
+  {isSuperAdmin && (
+    <button
+      type="button"
+      title="Sauvegarde"
+      aria-label="Sauvegarde"
+      onClick={() => router.push("/admin/backup")}
+      className="aspect-square w-full flex items-center justify-center rounded-xl bg-red-600 hover:bg-red-500 transition"
+    >
+      <DatabaseBackup size={39} />
+    </button>
+  )}
 
-
-
-              {/* STATUS */}
-
-              <button
-                onClick={() =>
-                  router.push(
-                    "/admin/status"
-                  )
-                }
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg transition"
-              >
-
-                Statut
-
-              </button>
-
-              {/* BACKUP & RESTORE */}
-
-{isSuperAdmin && (
-
+  {/* IMPORTANT MESSAGE */}
   <button
-    onClick={() =>
-      router.push(
-        "/admin/backup"
-      )
-    }
-    className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg transition"
+    type="button"
+    title="Message important"
+    aria-label="Message important"
+    onClick={() => router.push("/admin/site-message")}
+    className="aspect-square w-full flex items-center justify-center rounded-xl bg-amber-600 hover:bg-amber-500 transition"
   >
-
-    Sauvegarde
-
+    <MessageSquare size={39} />
   </button>
 
-)}
+</div>
 
-
-              {/* IMPORTANT MESSAGE */}
-
-              <button
-                onClick={() =>
-                  router.push(
-                    "/admin/site-message"
-                  )
-                }
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg transition"
-              >
-
-                Message
-
-              </button>
-
-
-            </div>
 
           </ControlCard>
 
@@ -727,7 +683,7 @@ useEffect(() => {
   </div>
 
   <div className="mt-1">
-    Version 1.5
+    Version 1.6
 
     {gateImage && (
 

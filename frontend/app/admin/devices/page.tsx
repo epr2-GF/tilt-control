@@ -169,272 +169,218 @@ export default function DevicesAdminPage() {
 
       </div>
 
-      {/* LIST */}
+ 
+      {/* LIST — GROUPED BY CARD TYPE */}
 
-      <div className="
-        mt-6
-        grid
-        gap-4
-        md:grid-cols-2
-      ">
+      {!loading && devices.length > 0 && (
+        <div className="mt-4 space-y-5">
 
-        {loading && (
-          <div className="
-            md:col-span-2
-            bg-slate-900/70
-            border border-slate-700
-            rounded-xl
-            p-6
-            text-slate-400
-          ">
-            Chargement des appareils...
-          </div>
-        )}
+          {Object.entries(
+            devices.reduce(
+              (groups: Record<string, any[]>, device: any) => {
+                const type = device.cardType || "other";
 
-        {!loading &&
-          devices.length === 0 && (
-            <div className="
-              md:col-span-2
-              bg-slate-900/70
-              border border-slate-700
-              rounded-xl
-              p-6
-              text-slate-400
-            ">
-              Aucun appareil configuré.
-            </div>
-          )}
+                if (!groups[type]) {
+                  groups[type] = [];
+                }
 
-        {!loading &&
-          devices.map((device) => (
-            <div
-              key={device.id}
-              className="
-                bg-slate-900/70
-                border border-slate-700
-                rounded-xl
-                p-5
-              "
-            >
+                groups[type].push(device);
+                return groups;
+              },
+              {}
+            )
+          )
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([cardType, groupDevices]) => {
+              const typeLabels: Record<string, string> = {
+                onOff: "Interrupteurs",
+                binary: "Capteurs binaires",
+                sensor: "Capteurs",
+                rollerShutter: "Volets roulants",
+                script: "Scripts",
+                other: "Autres appareils",
+              };
 
-              {/* HEADER */}
+              return (
+                <section key={cardType}>
 
-              <div className="
-                flex
-                justify-between
-                gap-4
-              ">
+                  {/* TYPE HEADING */}
 
-                <div className="min-w-0">
-
-                  <h3 className="font-semibold text-lg">
-                    {device.name}
-                  </h3>
-
-                  {device.description && (
-                    <p className="
-                      text-sm
-                      text-slate-400
-                      mt-1
-                    ">
-                      {device.description}
-                    </p>
-                  )}
-
-                </div>
-
-                <div className="
-                  text-xs
-                  text-blue-400
-                  whitespace-nowrap
-                ">
-                  {device.cardType}
-                </div>
-
-              </div>
-
-              {/* DETAILS */}
-
-              <div className="
-                mt-5
-                space-y-2
-                text-sm
-              ">
-
-                <p>
-                  <span className="text-slate-500">
-                    Entité :
-                  </span>{" "}
-                  <span className="
-                    text-slate-300
-                    font-mono
-                    text-xs
-                  ">
-                    {device.entityId}
-                  </span>
-                </p>
-
-                {device.statusEntity && (
-                  <p>
-                    <span className="text-slate-500">
-                      État :
-                    </span>{" "}
-                    <span className="
-                      text-slate-300
-                      font-mono
-                      text-xs
-                    ">
-                      {device.statusEntity}
+                  <h2 className="mb-2 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                    {typeLabels[cardType] || cardType}
+                    <span className="ml-2 text-slate-500">
+                      ({groupDevices.length})
                     </span>
-                  </p>
-                )}
+                  </h2>
 
-                {device.cardType === "onOff" && (
-                  <>
-                    <p>
-                      <span className="text-slate-500">
-                        ON :
-                      </span>{" "}
-                      <span className="
-                        text-green-400
-                        font-mono
-                        text-xs
-                      ">
-                        {device.button1Entity ||
-                          "Non configuré"}
-                      </span>
-                    </p>
+                  {/* DEVICES */}
 
-                    <p>
-                      <span className="text-slate-500">
-                        OFF :
-                      </span>{" "}
-                      <span className="
-                        text-red-400
-                        font-mono
-                        text-xs
-                      ">
-                        {device.button2Entity ||
-                          "Non configuré"}
-                      </span>
-                    </p>
-                  </>
-                )}
+                  <div className="grid gap-2 md:grid-cols-2">
 
-                <p>
-                  <span className="text-slate-500">
-                    Zones :
-                  </span>{" "}
-                  <span className="text-slate-300">
-                    {device.zones?.join(", ") ||
-                      "Aucune"}
-                  </span>
-                </p>
+                    {groupDevices.map((device: any) => (
+                      <div
+                        key={device.id}
+                        className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/70 p-3"
+                      >
 
-                <p>
-                  <span className="text-slate-500">
-                    État :
-                  </span>{" "}
-                  <span
-                    className={
-                      device.enabled
-                        ? "text-green-400"
-                        : "text-orange-400"
-                    }
-                  >
-                    {device.enabled
-                      ? "Activé"
-                      : "Désactivé"}
-                  </span>
-                </p>
+                        {/* NAME AND ACTIONS */}
 
-              </div>
+                        <div className="flex items-center justify-between gap-2">
 
-              {/* ACTIONS */}
+                          <div className="min-w-0 flex-1">
 
-              <div className="
-                flex
-                flex-wrap
-                gap-3
-                mt-6
-              ">
+                            <h3 className="truncate text-sm font-semibold text-white">
+                              {device.name}
+                            </h3>
 
-                <button
-                  onClick={() =>
-                    router.push(
-                      `/admin/devices/${device.id}/edit`
-                    )
-                  }
-                  className="
-                    flex
-                    items-center
-                    gap-2
-                    px-4
-                    py-2
-                    bg-blue-600
-                    hover:bg-blue-500
-                    rounded-lg
-                    text-sm
-                  "
-                >
-                  <Edit size={16} />
-                  Modifier
-                </button>
+                            {device.description && (
+                              <p className="mt-0.5 truncate text-xs text-slate-400">
+                                {device.description}
+                              </p>
+                            )}
 
-                <button
-                  onClick={() =>
-                    toggleDevice(device)
-                  }
-                  className={`
-                    flex
-                    items-center
-                    gap-2
-                    px-4
-                    py-2
-                    rounded-lg
-                    text-sm
-                    ${
-                      device.enabled
-                        ? "bg-orange-600 hover:bg-orange-500"
-                        : "bg-green-600 hover:bg-green-500"
-                    }
-                  `}
-                >
-                  <Power size={16} />
+                          </div>
 
-                  {device.enabled
-                    ? "Désactiver"
-                    : "Activer"}
-                </button>
+                          {/* ICON-ONLY ACTIONS */}
 
-                <button
-                  onClick={() =>
-                    setDeleteDeviceId(
-                      device.id
-                    )
-                  }
-                  className="
-                    flex
-                    items-center
-                    gap-2
-                    px-4
-                    py-2
-                    bg-red-600
-                    hover:bg-red-500
-                    rounded-lg
-                    text-sm
-                  "
-                >
-                  <Trash2 size={16} />
-                  Supprimer
-                </button>
+                          <div className="flex shrink-0 items-center gap-1">
 
-              </div>
+                            {/* EDIT */}
 
-            </div>
-          ))}
+                            <button
+                              type="button"
+                              title="Modifier"
+                              aria-label={`Modifier ${device.name}`}
+                              onClick={() =>
+                                router.push(
+                                  `/admin/devices/${device.id}/edit`
+                                )
+                              }
+                              className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-500 transition"
+                            >
+                              <Edit size={22} />
+                            </button>
 
-      </div>
+                            {/* ACTIVATE / DEACTIVATE */}
+
+                            <button
+                              type="button"
+                              title={device.enabled ? "Désactiver" : "Activer"}
+                              aria-label={`${device.enabled ? "Désactiver" : "Activer"} ${device.name}`}
+                              onClick={() => toggleDevice(device)}
+                              className={`flex h-11 w-11 items-center justify-center rounded-lg transition ${
+                                device.enabled
+                                  ? "bg-orange-600 hover:bg-orange-500"
+                                  : "bg-green-600 hover:bg-green-500"
+                              }`}
+                            >
+                              <Power size={22} />
+                            </button>
+
+                            {/* DELETE */}
+
+                            <button
+                              type="button"
+                              title="Supprimer"
+                              aria-label={`Supprimer ${device.name}`}
+                              onClick={() =>
+                                setDeleteDeviceId(device.id)
+                              }
+                              className="flex h-11 w-11 items-center justify-center rounded-lg bg-red-600 hover:bg-red-500 transition"
+                            >
+                              <Trash2 size={22} />
+                            </button>
+
+                          </div>
+                        </div>
+
+                        {/* COMPACT DETAILS */}
+
+                        <div className="mt-2 space-y-1 text-xs leading-tight">
+
+                          <p className="break-all text-slate-400">
+                            <span className="text-slate-500">Entité : </span>
+                            <span className="font-mono text-slate-300">
+                              {device.entityId}
+                            </span>
+                          </p>
+
+                          {device.statusEntity && (
+                            <p className="break-all text-slate-400">
+                              <span className="text-slate-500">État : </span>
+                              <span className="font-mono text-slate-300">
+                                {device.statusEntity}
+                              </span>
+                            </p>
+                          )}
+
+                          {device.cardType === "onOff" && (
+                            <>
+                              <p className="break-all text-slate-400">
+                                <span className="text-slate-500">ON : </span>
+                                <span className="font-mono text-green-400">
+                                  {device.button1Entity || "Non configuré"}
+                                </span>
+                              </p>
+
+                              <p className="break-all text-slate-400">
+                                <span className="text-slate-500">OFF : </span>
+                                <span className="font-mono text-red-400">
+                                  {device.button2Entity || "Non configuré"}
+                                </span>
+                              </p>
+                            </>
+                          )}
+
+                          <p className="text-slate-400">
+                            <span className="text-slate-500">Zones : </span>
+                            <span className="text-slate-300">
+                              {device.zones?.join(", ") || "Aucune"}
+                            </span>
+                          </p>
+
+                          <p>
+                            <span className="text-slate-500">Statut : </span>
+                            <span
+                              className={
+                                device.enabled
+                                  ? "text-green-400"
+                                  : "text-orange-400"
+                              }
+                            >
+                              {device.enabled ? "Activé" : "Désactivé"}
+                            </span>
+                          </p>
+
+                        </div>
+
+                      </div>
+                    ))}
+
+                  </div>
+                </section>
+              );
+            })}
+
+        </div>
+      )}
+
+      {/* LOADING */}
+
+      {loading && (
+        <div className="mt-4 rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-sm text-slate-400">
+          Chargement des appareils...
+        </div>
+      )}
+
+      {/* EMPTY STATE */}
+
+      {!loading && devices.length === 0 && (
+        <div className="mt-4 rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-sm text-slate-400">
+          Aucun appareil configuré.
+        </div>
+      )}
+
 
       {/* DELETE CONFIRMATION */}
 

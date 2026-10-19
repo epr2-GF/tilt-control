@@ -6,15 +6,13 @@ import { useToast } from "@/context/ToastContext";
 import type { User, Role } from "@/types/user";
 import {
   getUsers,
-  createUser,
   updateUser,
   deleteUser,
   toggleUserDisabled,
 } from "@/lib/userService";
 import DeployButton from "@/components/DeployButton";
+import CreateUserModal from "@/components/CreateUserModal";
 import { useAuth } from "@/context/AuthContext";
-import { safeUUID } from "@/lib/id";
-
 import {
   Shield,
   Users,
@@ -36,13 +34,8 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    username: "",
-    password: "",
-    role: "visiteur" as Role,
-    accessStart: "08:00",
-    accessEnd: "18:00",
-  });
+  const [showCreateUser, setShowCreateUser] = useState(false);
+
 
 // -----------------------------
   // AUTH GUARD
@@ -107,43 +100,6 @@ async function loadUsers() {
   </div>
 </div>
 
-  // -----------------------------
-  // CREATE USER
-  // -----------------------------
-async function handleCreate() {
-  if (!form.username.trim() || !form.password.trim()) {
-    showToast("Username and password required", "error");
-    return;
-  }
-
-  try {
-    const newUser: User = {
-      id: safeUUID(),
-      username: form.username.trim(),
-      password: form.password.trim(),
-      role: form.role,
-      disabled: false,
-      accessStart: form.accessStart,
-      accessEnd: form.accessEnd,
-
-    };
-
-    const updated = await createUser(newUser);
-    setUsers(updated);
-
-    setForm({
-      username: "",
-      password: "",
-      role: "visiteur",
-      accessStart: "08:00",
-      accessEnd: "18:00",
-    });
-
-    showToast("Utilisateur créé avec succès", "success");
-  } catch (err) {
-    showToast("Échec de la création de l'utilisateur", "error");
-  }
-}
 
   // -----------------------------
   // DELETE USER
@@ -300,78 +256,28 @@ async function handleSave() {
 
 </div>
 
-      {/* CREATE USER */}
-      <div className="bg-slate-900 p-4 rounded mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <UserPlus />
-          <h2 className="font-bold">Créer un utilisateur</h2>
-        </div>
-
-        <div className="grid gap-2">
-          <input
-            placeholder="Utilisateur"
-            className="p-2 bg-slate-800 rounded"
-            value={form.username}
-            onChange={(e) =>
-              setForm({ ...form, username: e.target.value })
-            }
-          />
-
-          <input
-            type="password"
-            placeholder="Mot de passe"
-            className="p-2 bg-slate-800 rounded"
-            value={form.password}
-            onChange={(e) =>
-              setForm({ ...form, password: e.target.value })
-            }
-          />
-
-<select
-  className="p-2 bg-slate-800 rounded"
-  value={form.role}
-  onChange={(e) =>
-    setForm({ ...form, role: e.target.value as Role })
-  }
->
-  <option value="admin">admin</option>
-  <option value="visiteur">visiteur</option>
-  <option value="epr2">epr2</option>
-  <option value="restaurant">restaurant</option>
-  <option value="pecheur">pecheur</option>
-</select>
-
-          <div className="flex gap-2">
-            <input
-              type="time"
-              className="p-2 bg-slate-800 rounded w-full"
-              value={form.accessStart}
-              onChange={(e) =>
-                setForm({ ...form, accessStart: e.target.value })
-              }
-            />
-            <input
-              type="time"
-              className="p-2 bg-slate-800 rounded w-full"
-              value={form.accessEnd}
-              onChange={(e) =>
-                setForm({ ...form, accessEnd: e.target.value })
-              }
-            />
-          </div>
-
-          <button
-            onClick={handleCreate}
-            className="bg-green-600 py-2 rounded"
-          >
-            Ajouter utilisateur
-          </button>
-        </div>
-      </div>
+{/* CREATE USER */}
+<div className="mb-6 flex justify-end">
+  <button
+    type="button"
+    onClick={() => setShowCreateUser(true)}
+    className="flex items-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-medium transition hover:bg-green-500"
+  >
+    <UserPlus size={18} />
+    Ajouter un utilisateur
+  </button>
+</div>
 
       {/* USER LIST */}
       <div className="space-y-3">
-        {users.map((u) => (
+          {[...users]
+    .sort((a, b) =>
+      a.username.localeCompare(b.username, undefined, {
+        sensitivity: "base",
+        numeric: true,
+      })
+    )
+    .map((u) => (
          <div
   key={u.id}
   className={`
@@ -591,6 +497,13 @@ className={`px-3 py-1 rounded-lg transition ${
           </div>
         </div>
       )}
+      {/* CREATE USER DIALOGUE */}
+{showCreateUser && (
+  <CreateUserModal
+    onClose={() => setShowCreateUser(false)}
+    onCreated={setUsers}
+  />
+)}
     </div>
   );
 }
