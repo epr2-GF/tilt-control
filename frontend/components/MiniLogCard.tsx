@@ -79,74 +79,75 @@ async function loadLogs() {
      * ---------------------------------------------------------
      */
 
-    let displayLogs = rawLogs;
+let displayLogs = rawLogs.filter(
+  (log) =>
+    log.state?.toLowerCase() !== "unavailable"
+);
 
-    if (device.miniLogMode === "pulse") {
-      const pulseSeconds =
-        device.miniLogPulseSeconds ?? 2;
+if (device.miniLogMode === "pulse") {
+  const pulseSeconds =
+    device.miniLogPulseSeconds ?? 2;
 
-      const pulseMilliseconds =
-        pulseSeconds * 1000;
+  const pulseMilliseconds =
+    pulseSeconds * 1000;
 
-      const filtered: MiniLogEntry[] = [];
+  const filtered: MiniLogEntry[] = [];
+  let pulseUntil = 0;
 
-      /*
-       * Logs arrive newest first.
-       *
-       * Keep track of the most recent application command
-       * which starts a pulse suppression window.
-       */
-      let pulseUntil = 0;
+  for (const log of displayLogs) {
+    const timestamp =
+      new Date(log.timestamp).getTime();
 
-      for (const log of rawLogs) {
-        const timestamp =
-          new Date(log.timestamp).getTime();
+    const isHA =
+      log.source?.toUpperCase() === "HA";
 
-        /*
-         * Application-generated events are identified by
-         * anything that is NOT "HA".
-         *
-         * The backend currently stores the username for app
-         * commands and "HA" for Home Assistant events.
-         */
-        const isHA =
-          log.source?.toUpperCase() === "HA";
-
-        if (!isHA) {
-          /*
-           * This is an application command.
-           *
-           * Display it and establish a suppression window
-           * backwards through the newer HA entries.
-           */
-          filtered.push(log);
-
-          pulseUntil =
-            timestamp +
-            pulseMilliseconds;
-
-          continue;
-        }
-
-        /*
-         * HA event.
-         *
-         * If it falls inside the pulse window belonging to
-         * the application command, don't display it.
-         */
-        if (
-          timestamp <= pulseUntil &&
-          timestamp >=
-            pulseUntil - pulseMilliseconds
-        ) {
-          continue;
-        }
-
-        filtered.push(log);
-      }
-
-      displayLogs = filtered;
+    if (!isHA) {
+      filtered.push(log);
+      pulseUntil =
+        timestamp + pulseMilliseconds;
+      continue;
     }
+
+    if (
+      timestamp <= pulseUntil &&
+      timestamp >= pulseUntil - pulseMilliseconds
+    ) {
+      continue;
+    }
+
+    filtered.push(log);
+  }
+
+  displayLogs = filtered;
+}
+
+/*
+ * Suppress consecutive duplicate ON/OFF states.
+ * Logs arrive newest first, so compare each state
+ * with the most recent state already retained.
+ * Keep all non-ON/OFF events, including Toggle.
+ */
+const deduplicated: MiniLogEntry[] = [];
+const lastStateByEntity = new Map<string, string>();
+
+for (const log of displayLogs) {
+  const state = log.state?.trim().toLowerCase();
+
+  if (state === "on" || state === "off") {
+    const previousState =
+      lastStateByEntity.get(log.entityId);
+
+    if (previousState === state) {
+      continue;
+    }
+
+    lastStateByEntity.set(log.entityId, state);
+  }
+
+  deduplicated.push(log);
+}
+
+displayLogs = deduplicated;
 
     /*
      * Finally limit the Mini Log display to five entries.
