@@ -9,7 +9,7 @@ import {
 import { useToast } from "@/context/ToastContext";
 import ControlCard from "@/components/ControlCard";
 import { useDevices } from "@/context/DeviceContext";
-import { apiFetch } from "@/lib/api";
+import { triggerDeviceControl } from "@/services/deviceService";
 
 interface LockCardProps {
   device: any;
@@ -69,16 +69,10 @@ export default function LockCard({
     setPending(true);
 
     try {
-      await apiFetch(
-        "/devices/trigger",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            deviceId: device.id,
-            action: service,
-          }),
-        }
-      );
+await triggerDeviceControl(
+  String(device.id),
+  service
+);
 
       showToast(
         service === "lock"

@@ -242,128 +242,6 @@ if (
 
       <div className="grid gap-5">
 
-        {/* NAME */}
-
-        <div>
-          <label className="block mb-2 text-sm text-slate-300">
-            Nom
-          </label>
-
-          <input
-            className="
-              w-full
-              bg-slate-800
-              border border-slate-700
-              rounded-lg
-              p-3
-              outline-none
-              focus:border-blue-500
-            "
-            placeholder="Nom de l'appareil"
-            value={form.name}
-            onChange={(e) =>
-              updateField(
-                "name",
-                e.target.value
-              )
-            }
-          />
-        </div>
-
-        {/* DESCRIPTION */}
-
-        <div>
-          <label className="block mb-2 text-sm text-slate-300">
-            Description
-          </label>
-
-          <input
-            className="
-              w-full
-              bg-slate-800
-              border border-slate-700
-              rounded-lg
-              p-3
-              outline-none
-              focus:border-blue-500
-            "
-            placeholder="Description"
-            value={form.description}
-            onChange={(e) =>
-              updateField(
-                "description",
-                e.target.value
-              )
-            }
-          />
-        </div>
-
-{/* ENTITY */}
-
-{form.cardType !== "onOff" && (
-  <div>
-    <label className="block mb-2 text-sm text-slate-300">
-      Entité Home Assistant
-    </label>
-
-    <input
-      className="
-        w-full
-        bg-slate-800
-        border border-slate-700
-        rounded-lg
-        p-3
-        font-mono
-        text-sm
-        outline-none
-        focus:border-blue-500
-      "
-      placeholder="Ex : switch.portail"
-      value={form.entityId}
-      onChange={(e) =>
-        updateField(
-          "entityId",
-          e.target.value
-        )
-      }
-    />
-  </div>
-)}
-
-        {/* STATUS ENTITY */}
-
-        <div>
-          <label className="block mb-2 text-sm text-slate-300">
-            Entité d'état
-          </label>
-
-          <input
-            className="
-              w-full
-              bg-slate-800
-              border border-slate-700
-              rounded-lg
-              p-3
-              font-mono
-              text-sm
-              outline-none
-              focus:border-blue-500
-            "
-            placeholder="Optionnel — utilise l'entité principale si vide"
-            value={form.statusEntity}
-            onChange={(e) =>
-              updateField(
-                "statusEntity",
-                e.target.value
-              )
-            }
-          />
-
-          <p className="mt-2 text-xs text-slate-500">
-            Utilisé pour déterminer l'état affiché sur la carte.
-          </p>
-        </div>
-
         {/* CARD TYPE */}
 
         <div>
@@ -606,6 +484,137 @@ if (
 
           </div>
         )}
+
+
+
+        {/* NAME */}
+
+        <div>
+          <label className="block mb-2 text-sm text-slate-300">
+            Nom
+          </label>
+
+          <input
+            className="
+              w-full
+              bg-slate-800
+              border border-slate-700
+              rounded-lg
+              p-3
+              outline-none
+              focus:border-blue-500
+            "
+            placeholder="Nom de l'appareil"
+            value={form.name}
+            onChange={(e) =>
+              updateField(
+                "name",
+                e.target.value
+              )
+            }
+          />
+        </div>
+
+        {/* DESCRIPTION */}
+
+        <div>
+          <label className="block mb-2 text-sm text-slate-300">
+            Description
+          </label>
+
+          <input
+            className="
+              w-full
+              bg-slate-800
+              border border-slate-700
+              rounded-lg
+              p-3
+              outline-none
+              focus:border-blue-500
+            "
+            placeholder="Description"
+            value={form.description}
+            onChange={(e) =>
+              updateField(
+                "description",
+                e.target.value
+              )
+            }
+          />
+        </div>
+
+{/* ENTITY */}
+
+{form.cardType !== "onOff" && (
+  <div>
+    <label className="block mb-2 text-sm text-slate-300">
+      Entité Home Assistant
+    </label>
+
+    <input
+      className="
+        w-full
+        bg-slate-800
+        border border-slate-700
+        rounded-lg
+        p-3
+        font-mono
+        text-sm
+        outline-none
+        focus:border-blue-500
+      "
+      placeholder="Ex : switch.portail"
+      value={form.entityId}
+      onChange={(e) =>
+        updateField(
+          "entityId",
+          e.target.value
+        )
+      }
+    />
+  </div>
+)}
+
+        {/* STATUS ENTITY */}
+{(
+  form.cardType === "device" ||
+  form.cardType === "binary" ||
+  form.cardType === "sensor" ||
+  form.cardType === "onOff"
+) && (
+        <div>
+          <label className="block mb-2 text-sm text-slate-300">
+            Entité d'état
+          </label>
+
+          <input
+            className="
+              w-full
+              bg-slate-800
+              border border-slate-700
+              rounded-lg
+              p-3
+              font-mono
+              text-sm
+              outline-none
+              focus:border-blue-500
+            "
+            placeholder="Optionnel — utilise l'entité principale si vide"
+            value={form.statusEntity}
+            onChange={(e) =>
+              updateField(
+                "statusEntity",
+                e.target.value
+              )
+            }
+          />
+
+          <p className="mt-2 text-xs text-slate-500">
+            Utilisé pour déterminer l'état affiché sur la carte.
+          </p>
+        </div>
+)}
+
 
         {/* ICON */}
 
