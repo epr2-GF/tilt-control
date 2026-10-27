@@ -683,7 +683,7 @@ useEffect(() => {
   </div>
 
   <div className="mt-1">
-    Version 1.6
+    Version 1.7
 
     {gateImage && (
 
