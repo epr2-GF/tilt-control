@@ -247,22 +247,16 @@ router.post(
         );
 
       writeAudit({
-        severity: "admin",
-        type: "admin",
-        event:
-          "Application backup completed",
-        actor:
-          (req as any).user?.username,
-        role:
-          (req as any).user?.role,
-      });
+  severity: "admin",
+  type: "admin",
+  event: "Application backup completed",
+  actor: (req as any).user?.username,
+});
 
       return res.json({
-        success: true,
-        stdout,
-        warning:
-          stderr || undefined,
-      });
+  success: true,
+  message: "Application backup completed",
+});
 
     } catch (err: any) {
 
@@ -278,8 +272,6 @@ router.post(
           "Application backup failed",
         actor:
           (req as any).user?.username,
-        role:
-          (req as any).user?.role,
         details:
           err?.message ??
           "Unknown error",
@@ -490,8 +482,6 @@ const requestData =
           "Application restore requested",
         actor:
           (req as any).user?.username,
-        role:
-          (req as any).user?.role,
         details: {
           backup,
           jobId,

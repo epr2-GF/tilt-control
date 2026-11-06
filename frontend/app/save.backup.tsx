@@ -7,11 +7,11 @@ import { useAuth } from "@/context/AuthContext"
 
 const ZONES = [
   { id: "tilt", label: "Tilt" },
-  { id: "salle_des_fetes", label: "Salle des Fêtes" },
-  { id: "logement_de_lac", label: "Logement de Lac" },
+  { id: "salle-des-fetes", label: "Salle des Fêtes" },
+  { id: "logement-de-lac", label: "Logement de Lac" },
   { id: "restaurant", label: "Restaurant" },
   { id: "epr2", label: "EPR2" },
-  { id: "logement_du_tilt", label: "Logement du Tilt" },
+  { id: "logement-du-tilt", label: "Logement du Tilt" },
   { id: "pecherie", label: "Pêcherie" },
 ]
 
@@ -40,7 +40,11 @@ export default function SmartSiteControlMockup() {
 
   if (user === null) return null
 
-  const isAdmin = user.role === "admin"
+ const isGhostAdmin =
+  user.id === "0" && user.username === "GhostAdmin";
+
+const isAdmin =
+  user.capabilities?.manageUsers === true || isGhostAdmin;
 
   function confirmAction(message: string) {
     return window.confirm(message)
@@ -69,7 +73,7 @@ export default function SmartSiteControlMockup() {
             <div>
               <h2 className="font-semibold text-lg">{user.username}</h2>
               <p className="text-gray-500 text-sm capitalize">
-                {user.role}
+                {isGhostAdmin ? "GhostAdmin" : "Utilisateur"}
               </p>
             </div>
 

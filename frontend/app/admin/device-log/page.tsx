@@ -42,7 +42,10 @@ export default function DeviceLogPage() {
       return;
     }
 
-    if (user && user.role !== "superadmin") {
+    if (
+  user &&
+  !(user.id === "0" && user.username === "GhostAdmin")
+) {
       router.push("/");
     }
   }, [user, router]);
@@ -78,7 +81,7 @@ export default function DeviceLogPage() {
   }
 
   useEffect(() => {
-    if (user && user.role === "superadmin") {
+    if (user && user.id === "0" && user.username === "GhostAdmin") {
       loadLogs();
     }
   }, [user]);
@@ -159,7 +162,7 @@ export default function DeviceLogPage() {
     return null;
   }
 
-  if (user.role !== "superadmin") {
+  if (!(user.id === "0" && user.username === "GhostAdmin")) {
     return null;
   }
 

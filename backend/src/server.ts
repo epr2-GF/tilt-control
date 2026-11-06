@@ -69,7 +69,6 @@ function processRestoreAuditMarker() {
         : "Application restore failed",
       actor:
         marker.actor || "unknown",
-      role: "superadmin",
       details: {
         backup:
           marker.backup,
@@ -124,10 +123,6 @@ app.use(
   })
 );
 
-
-// ✅ 1. MIDDLEWARE FIRST (VERY IMPORTANT)
-app.use(express.json());
-
 // ✅ 2. ROUTES
 app.use((req, res, next) => {
   console.log(`➡️ ${req.method} ${req.path}`);
@@ -150,22 +145,6 @@ app.use(
   authMiddleware,
   deviceAdminRoutes
 );
-
-app.post("/api/test-session", (req, res) => {
-  console.log("🔥 test session route hit");
-
-  res.json({
-    ok: true
-  });
-});
-
-// ✅ TEST ROUTE
-app.get("/api/test-protected", authMiddleware, (req, res) => {
-  res.json({
-    message: "JWT is working 🎉",
-    user: (req as any).user,
-  });
-});
 
 // health check
 app.get("/health", (req, res) => {

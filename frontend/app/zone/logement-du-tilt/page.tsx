@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,141 +13,149 @@ import ZoneHeader from "@/components/ZoneHeader";
 import DeviceRenderer from "@/components/DeviceRenderer";
 import { useDevices } from "@/context/DeviceContext";
 
-
 export default function LogementDuTiltPage() {
-
   const router = useRouter();
   const { user } = useAuth();
   const { refreshStates } = useDevices();
 
   const [devices, setDevices] = useState<any[]>([]);
 
-
   const hasAccess =
-    user?.permissions?.zones?.includes("logement-du-tilt") ?? false;
-
+    user?.zones?.includes("logement-du-tilt") ?? false;
 
   /*
-    LOAD DEVICES + REFRESH HOME ASSISTANT STATES
+    LOAD DEVICES ASSIGNED TO LOGEMENT DU TILT
+    AND REFRESH HOME ASSISTANT STATES
   */
   useEffect(() => {
+    if (user === undefined || !user || !hasAccess) {
+      setDevices([]);
+      return;
+    }
 
-async function loadDevices() {
-  try {
-    const data = await apiFetch("/devices");
+    let cancelled = false;
 
-    const zoneDevices = data.filter(
-      (device: any) =>
-        device.zones?.includes("logement-du-tilt") &&
-        device.enabled !== false
+    async function loadDevices() {
+      try {
+        const data = await apiFetch("/devices");
+
+        if (cancelled) return;
+
+        if (!Array.isArray(data)) {
+          console.error(
+            "Device API did not return an array:",
+            data
+          );
+          return;
+        }
+
+        const zoneDevices = data.filter(
+          (device: any) =>
+            device.zones?.includes("logement-du-tilt") &&
+            device.enabled !== false
+        );
+
+        setDevices(zoneDevices);
+
+        // Refresh current Home Assistant states
+        // whenever devices are loaded.
+        await refreshStates();
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            "Failed loading logement du tilt devices",
+            error
+          );
+        }
+      }
+    }
+
+    // Initial load when entering the zone.
+    void loadDevices();
+
+    // Refresh devices and Home Assistant states
+    // whenever the page/app becomes visible again.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadDevices();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
     );
 
-    setDevices(zoneDevices);
-  } catch (error) {
-    console.error(
-      "Failed loading logement du tilt devices",
-      error
-    );
-  }
-}
+    return () => {
+      cancelled = true;
 
-if (hasAccess) {
-  loadDevices();
-  refreshStates();
-}
-
-
-  }, [hasAccess, refreshStates]);
-
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, [user, hasAccess, refreshStates]);
 
   /*
     AUTH + PERMISSION CHECK
   */
   useEffect(() => {
+    if (user === undefined) return;
 
-    if (user === null) {
-
-      router.push("/login");
-
+    if (!user) {
+      router.replace("/login");
       return;
-
     }
 
-
-    if (user && !hasAccess) {
-
-      router.push("/");
-
+    if (!hasAccess) {
+      router.replace("/");
     }
-
-
   }, [user, hasAccess, router]);
-
 
   /*
     LOADING / ACCESS
   */
-  if (user === undefined) return null;
-
-  if (!user) return null;
-
-  if (!hasAccess) return null;
-
+  if (user === undefined || !user || !hasAccess) {
+    return null;
+  }
 
   /*
     PAGE
   */
   return (
-
-    <main className="
-      min-h-screen
-      bg-gradient-to-br
-      from-slate-950
-      via-slate-900
-      to-slate-950
-      text-white
-      p-6
-    ">
-
-
-      <div className="mb-6">
-
-        <BackButton />
-
-      </div>
-
-
+    <main
+      className="
+        min-h-screen
+        bg-gradient-to-br
+        from-slate-950
+        via-slate-900
+        to-slate-950
+        text-white
+        p-6
+      "
+    >
       <ZoneHeader
-        title="Logement du Tilt"
-        subtitle="Gestion du logement du Tilt"
-        icon={<Home size={28} />}
-      />
+  title="Logement du Tilt"
+  icon={<Home size={20} />}
+  action={<BackButton />}
+/>
 
-
-      <section className="
-        grid
-        grid-cols-1
-        md:grid-cols-2
-        gap-4
-        mt-6
-      ">
-
-
+      <section
+        className="
+          grid
+          grid-cols-1
+          md:grid-cols-2
+          gap-4
+          mt-6
+        "
+      >
         {devices.map((device) => (
-
           <DeviceRenderer
             key={device.id}
             device={device}
           />
-
         ))}
-
-
       </section>
-
-
     </main>
-
   );
-
 }

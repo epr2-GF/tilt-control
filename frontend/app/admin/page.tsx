@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
-import type { User, Role } from "@/types/user";
-import {getUsers,} from "@/lib/userService";
+import type { User } from "@/types/user";
+import { getUsers } from "@/lib/userService";
 import CreateUserModal from "@/components/CreateUserModal";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -12,7 +12,6 @@ import {
   UserPlus,
   Pencil,
   ArrowLeft,
-  MessageSquare,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -24,39 +23,59 @@ export default function AdminPage() {
 
 
 // -----------------------------
-  // AUTH GUARD
-  // -----------------------------
+// AUTH GUARD
+// -----------------------------
 useEffect(() => {
+  if (user === null) {
+    router.push("/login");
+    return;
+  }
 
- if(user === null){
-   router.push("/login");
-   return;
- }
-
- if(
-   user &&
-   user.role !== "admin" &&
-   user.role !== "superadmin"
- ){
-   router.push("/");
- }
-
-},[user]);
+  if (
+    user &&
+    user.capabilities?.manageUsers !== true &&
+    !(user.id === "0" && user.username === "GhostAdmin")
+  ) {
+    router.push("/");
+  }
+}, [user, router]);
   // -----------------------------
   // LOAD USERS
   // -----------------------------
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-async function loadUsers() {
-  try {
-    const data = await getUsers();
-    setUsers(data);
-  } catch (err) {
-    console.error("Failed to load users:", err);
+useEffect(() => {
+  if (
+    !user ||
+    (
+      user.capabilities?.manageUsers !== true &&
+      !(user.id === "0" && user.username === "GhostAdmin")
+    )
+  ) {
+    return;
   }
-}
+
+  let cancelled = false;
+
+  async function loadUsers() {
+    try {
+      const data = await getUsers();
+
+      if (!cancelled) {
+        setUsers(data);
+      }
+    } catch (err) {
+      if (!cancelled) {
+        console.error("Failed to load users:", err);
+        showToast("Impossible de charger les utilisateurs", "error");
+      }
+    }
+  }
+
+  void loadUsers();
+
+  return () => {
+    cancelled = true;
+  };
+}, [user, showToast]);
 
 // -----------------------------
   // LOADING / INITIALIZATION
@@ -72,12 +91,14 @@ async function loadUsers() {
     );
   }
 
-  if (!user) return null;
+ if (!user) return null;
+
+  const isGhostAdmin =
+  user.id === "0" && user.username === "GhostAdmin";
+
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6">
-
-
 
 {/* HEADER */}
 <div className="flex justify-between items-center mb-6">
@@ -152,22 +173,41 @@ async function loadUsers() {
           {u.username}
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            router.push(`/admin/users/${encodeURIComponent(u.id)}`)
-          }
-          aria-label={`Modifier ${u.username}`}
-          title={`Modifier ${u.username}`}
-          className="
-            flex shrink-0 items-center justify-center
-            rounded-lg border border-slate-600
-            bg-slate-700 p-2
-            transition hover:bg-blue-600
-          "
-        >
-          <Pencil size={18} />
-        </button>
+<button
+  type="button"
+  onClick={() =>
+    router.push(`/admin/users/${encodeURIComponent(u.id)}`)
+  }
+  disabled={
+    !isGhostAdmin &&
+    (
+      u.capabilities?.manageUsers === true ||
+      (u.id === "0" && u.username === "GhostAdmin")
+    )
+  }
+  aria-label={`Modifier ${u.username}`}
+  title={
+    !isGhostAdmin &&
+    (
+      u.capabilities?.manageUsers === true ||
+      (u.id === "0" && u.username === "GhostAdmin")
+    )
+      ? "Modification réservée au superadministrateur"
+      : `Modifier ${u.username}`
+  }
+  className="
+    flex shrink-0 items-center justify-center
+    rounded-lg border border-slate-600
+    bg-slate-700 p-2
+    transition
+    hover:bg-blue-600
+    disabled:cursor-not-allowed
+    disabled:opacity-30
+    disabled:hover:bg-slate-700
+  "
+>
+  <Pencil size={18} />
+</button>
       </div>
     ))}
 </div>

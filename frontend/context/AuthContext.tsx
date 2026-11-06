@@ -15,7 +15,7 @@ import { User } from "@/types/user";
 type AuthContextType = {
   user: User | null | undefined;
   token: string | null;
-  loginUser: (token: string) => Promise<void>;
+  loginUser: (token: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
@@ -42,7 +42,7 @@ export function AuthProvider({
   /*
   LOGIN
   */
-const loginUser = async (authToken:string)=>{
+const loginUser = async (authToken: string): Promise<boolean> => {
 
   localStorage.setItem(
     "smart-site-token",
@@ -53,18 +53,38 @@ const loginUser = async (authToken:string)=>{
 
   try {
 
-const me = await getMe();
+    const me = await getMe();
 
-setUser(me);
+    // Ignore the response if another login/logout
+    // has changed the stored token.
+    if (
+      localStorage.getItem("smart-site-token") !== authToken
+    ) {
+      return false;
+    }
 
-  } catch(err){
+    setUser(me);
+
+    return true;
+
+  } catch (err) {
 
     console.error(
       "Login verification failed:",
       err
     );
 
-    setUser(null);
+    // Do not clear a newer session.
+    if (
+      localStorage.getItem("smart-site-token") === authToken
+    ) {
+      localStorage.removeItem("smart-site-token");
+
+      setToken(null);
+      setUser(null);
+    }
+
+    return false;
 
   }
 
@@ -77,29 +97,32 @@ setUser(me);
   */
 const logout = async () => {
 
-  try {
+  const logoutToken =
+    localStorage.getItem("smart-site-token");
 
-await apiFetch(
-  "/auth/logout",
-  {
-    method: "POST",
-  }
-);
-
-  } catch (error) {
-
-    // Still complete local logout
-    // if the backend is unavailable.
-
-  }
-
-  localStorage.removeItem(
-    "smart-site-token"
-  );
+  // Complete local logout immediately.
+  localStorage.removeItem("smart-site-token");
 
   setToken(null);
-
   setUser(null);
+
+  // Notify the backend using the old session token.
+  if (logoutToken) {
+    try {
+
+      await apiFetch(
+        "/session/logout",
+        {
+          method: "POST",
+        },
+        logoutToken
+      );
+
+    } catch (error) {
+
+      // Local logout is already complete.
+    }
+  }
 
 };
 
@@ -109,8 +132,24 @@ await apiFetch(
   REFRESH USER
   */
 const refreshUser = async () => {
+
+  const requestToken =
+    localStorage.getItem("smart-site-token");
+
+  if (!requestToken) {
+    return;
+  }
+
   try {
+
     const me = await getMe();
+
+    // Ignore responses from an old session.
+    if (
+      localStorage.getItem("smart-site-token") !== requestToken
+    ) {
+      return;
+    }
 
     setUser(me);
 
@@ -121,14 +160,9 @@ const refreshUser = async () => {
       error
     );
 
-    // Do NOT logout here.
-    //
-    // apiFetch() handles 401/403 authentication
-    // failures and redirects to /login.
-    //
-    // Temporary network/API failures should not
-    // destroy a valid 7-day JWT.
+    // Do not log out on temporary network failures.
   }
+
 };
 
 
@@ -159,25 +193,32 @@ const refreshUser = async () => {
 
       setToken(storedToken);
 
+try {
 
-      try {
+  const me = await getMe();
 
-        const me = await getMe();
+  if (
+    localStorage.getItem("smart-site-token") !== storedToken
+  ) {
+    return;
+  }
 
-        setUser(me);
+  setUser(me);
 
+} catch (error) {
 
-      } catch(error){
+  console.error(
+    "Session restore failed",
+    error
+  );
 
-        console.error(
-          "Session restore failed",
-          error
-        );
+  if (
+    localStorage.getItem("smart-site-token") === storedToken
+  ) {
+    setUser(null);
+  }
 
-
-        logout();
-
-      }
+}
 
 
     };

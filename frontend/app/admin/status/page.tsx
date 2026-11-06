@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
-
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   Activity,
   Server,
@@ -17,7 +18,14 @@ import { apiFetch } from "@/lib/api";
 export default function StatusPage() {
   const [status, setStatus] = useState<any>(null);
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
+  const router = useRouter();
+  const { user } = useAuth();
 
+  const isGhostAdmin =
+    user?.id === "0" && user?.username === "GhostAdmin";
+
+  const canViewRecentUsers =
+    user?.capabilities?.manageUsers === true || isGhostAdmin;
   function formatUptime(seconds: number) {
     const days = Math.floor(seconds / 86400);
 
@@ -33,23 +41,45 @@ export default function StatusPage() {
   }
 
   useEffect(() => {
+    if (user === undefined) return;
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    let cancelled = false;
+
     async function loadStatus() {
       try {
         const data = await apiFetch("/status");
 
+        if (cancelled) return;
+
         setStatus(data);
-        setRecentUsers(data.recentUsers || []);
+
+        if (canViewRecentUsers) {
+          setRecentUsers(data.recentUsers || []);
+        }
       } catch (error) {
-        console.error(
-          "Failed to load system status",
-          error
-        );
+        if (!cancelled) {
+          console.error(
+            "Failed to load system status",
+            error
+          );
+        }
       }
     }
 
-    loadStatus();
-  }, []);
+    void loadStatus();
 
+    return () => {
+      cancelled = true;
+    };
+  }, [user, canViewRecentUsers, router]);
+  if (user === undefined || !user) {
+    return null;
+  }
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-6">
 
@@ -138,6 +168,7 @@ export default function StatusPage() {
 
 
         {/* USERS — LAST 24 HOURS */}
+        {canViewRecentUsers && (
         <div className="
           bg-slate-900/70
           border border-slate-700
@@ -164,7 +195,6 @@ export default function StatusPage() {
             </div>
 
           </div>
-
 
           {recentUsers.length === 0 ? (
 
@@ -194,10 +224,6 @@ export default function StatusPage() {
 
                     <div className="font-medium">
                       {user.username}
-                    </div>
-
-                    <div className="text-xs text-slate-400">
-                      {user.role}
                     </div>
 
                     <div className="text-xs text-slate-500">
@@ -236,7 +262,7 @@ export default function StatusPage() {
           )}
 
         </div>
-
+)}
       </div>
 
     </main>

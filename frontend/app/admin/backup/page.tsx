@@ -6,7 +6,8 @@ import {
   DatabaseBackup,
   RefreshCw,
 } from "lucide-react";
-
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -20,31 +21,33 @@ type Backup = {
 };
 
 export default function BackupAdminPage() {
+  const router = useRouter();
+  const { user } = useAuth();
 
-  const [backups, setBackups] =
-    useState<Backup[]>([]);
+  const isGhostAdmin =
+    user?.id === "0" && user?.username === "GhostAdmin";
 
-  const [loading, setLoading] =
-    useState(true);
+  const [backups, setBackups] = useState<Backup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [backupRunning, setBackupRunning] = useState(false);
+  const [backupMessage, setBackupMessage] = useState<string | null>(null);
+  const [selectedBackup, setSelectedBackup] = useState<string | null>(null);
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
+  const [restoreStatus, setRestoreStatus] = useState<any>(null);
 
-  const [error, setError] =
-    useState<string | null>(null);
+  useEffect(() => {
+    if (user === undefined) return;
 
-const [backupRunning, setBackupRunning] =
-  useState(false);
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
 
-const [backupMessage, setBackupMessage] =
-  useState<string | null>(null);
-
-const [selectedBackup, setSelectedBackup] =
-  useState<string | null>(null);
-
-const [restoreConfirmOpen, setRestoreConfirmOpen] =
-  useState(false);
-
-const [restoreStatus, setRestoreStatus] =
-  useState<any>(null);
-
+    if (!isGhostAdmin) {
+      router.replace("/");
+    }
+  }, [user, isGhostAdmin, router]);
 
 async function requestRestore() {
 
@@ -84,9 +87,7 @@ async function requestRestore() {
   }
 
 }
-
 useEffect(() => {
-
   if (
     !restoreStatus ||
     (
@@ -98,19 +99,15 @@ useEffect(() => {
   }
 
   let cancelled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
   const poll = async () => {
-
     try {
+      const status = await apiFetch(
+        "/admin/backup/restore/status"
+      );
 
-      const status =
-        await apiFetch(
-          "/admin/backup/restore/status"
-        );
-
-      if (cancelled) {
-        return;
-      }
+      if (cancelled) return;
 
       setRestoreStatus(status);
 
@@ -118,43 +115,31 @@ useEffect(() => {
         status.status === "success" ||
         status.status === "failed"
       ) {
-
         await loadBackups();
-
         return;
       }
 
     } catch (err) {
-
-      /*
-       * The backend is deliberately restarted
-       * after the restore completes, so a temporary
-       * connection failure is expected.
-       *
-       * Keep polling rather than treating it as
-       * a restore failure.
-       */
+      if (cancelled) return;
 
       console.log(
         "Restore status temporarily unavailable; retrying..."
       );
-
     }
 
     if (!cancelled) {
-      setTimeout(poll, 2000);
+      timer = setTimeout(poll, 2000);
     }
-
   };
 
-  const timer =
-    setTimeout(poll, 1000);
+  timer = setTimeout(poll, 1000);
 
   return () => {
-
     cancelled = true;
-    clearTimeout(timer);
 
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
   };
 
 }, [restoreStatus?.status]);
@@ -236,11 +221,13 @@ async function runBackup() {
   }
 
 
-  useEffect(() => {
+useEffect(() => {
+  if (user?.id !== "0" || user?.username !== "GhostAdmin") {
+    return;
+  }
 
-    loadBackups();
-
-  }, []);
+  void loadBackups();
+}, [user]);
 
 
   const latestBackup =
@@ -248,7 +235,9 @@ async function runBackup() {
       ? backups[0]
       : null;
 
-
+if (user === undefined || !isGhostAdmin) {
+  return null;
+}
   return (
 
     <main className="

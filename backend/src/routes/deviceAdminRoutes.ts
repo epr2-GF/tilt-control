@@ -16,6 +16,30 @@ import {
 
 const router = express.Router();
 
+
+function isDeviceValidationError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  return [
+    "Device name",
+    "Invalid device description",
+    "Invalid Home Assistant entity ID",
+    "Invalid device zones",
+    "Invalid device card type",
+    "Device enabled",
+    "Invalid device sort order",
+    "Invalid device icon",
+    "Invalid device statusTrue",
+    "Invalid device statusFalse",
+    "Invalid MiniLog mode",
+    "Invalid MiniLog pulse duration",
+    "Device is missing required fields",
+    "Run Script devices must use a script entity",
+    "OnOff devices require valid button1Entity and button2Entity values",
+  ].some(message => error.message.startsWith(message));
+}
+
+
 router.use(authMiddleware);
 router.use(superAdminOnly);
 
@@ -32,6 +56,12 @@ router.get("/", (req, res) => {
 router.get("/:id", (req, res) => {
   const id = Number(req.params.id);
 
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({
+      message: "Invalid device ID",
+    });
+  }
+
   const device = getDeviceById(id);
 
   if (!device) {
@@ -40,7 +70,7 @@ router.get("/:id", (req, res) => {
     });
   }
 
-  res.json(device);
+  return res.json(device);
 });
 
 /* -----------------------------
@@ -50,32 +80,44 @@ router.post("/", async (req, res) => {
   try {
     const device = addDevice(req.body);
 
-    reloadDeviceEntities();
-    await refreshCurrentStates();
+    writeAudit({
+      severity: "info",
+      event: "DEVICE_CREATED",
+      actor: (req as any).user.username,
+      target: device.name,
+      details: {
+        id: device.id,
+        name: device.name,
+        entityId: device.entityId,
+        zones: device.zones,
+      },
+    });
 
-writeAudit({
-  severity: "info",
-  event: "DEVICE_CREATED",
-  actor: (req as any).user.username,
-  target: device.name,
-  role: (req as any).user.role,
-  details: {
-    id: device.id,
-    name: device.name,
-    entityId: device.entityId,
-    zones: device.zones,
-  },
-});
+    try {
+      reloadDeviceEntities();
+      await refreshCurrentStates();
+    } catch (refreshError) {
+      console.error("Device created, but Home Assistant refresh failed:", refreshError);
+    }
 
     return res.status(201).json(device);
   } catch (error) {
     console.error("Failed to create device:", error);
 
+    if (isDeviceValidationError(error)) {
+      return res.status(400).json({
+        message: error instanceof Error ? error.message : "Invalid device configuration",
+      });
+    }
+
     return res.status(500).json({
       message: "Failed to create device",
     });
   }
+
+
 });
+
 
 /* -----------------------------
    UPDATE DEVICE
@@ -83,19 +125,75 @@ writeAudit({
 router.put("/:id", async (req, res) => {
   const id = Number(req.params.id);
 
-  const device = updateDevice(id, req.body);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({
+      message: "Invalid device ID",
+    });
+  }
 
-  if (!device) {
+  const previousDevice = getDeviceById(id);
+
+  if (!previousDevice) {
     return res.status(404).json({
       message: "Device not found",
     });
   }
 
-  reloadDeviceEntities();
-  await refreshCurrentStates();
+  try {
+    const device = updateDevice(id, req.body);
 
-  res.json(device);
+    if (!device) {
+      return res.status(404).json({
+        message: "Device not found",
+      });
+    }
+
+    writeAudit({
+      severity: "warning",
+      event: "DEVICE_UPDATED",
+      actor: (req as any).user.username,
+      target: device.name,
+      details: {
+        id: device.id,
+        before: {
+          name: previousDevice.name,
+          entityId: previousDevice.entityId,
+          zones: previousDevice.zones,
+          enabled: previousDevice.enabled,
+        },
+        after: {
+          name: device.name,
+          entityId: device.entityId,
+          zones: device.zones,
+          enabled: device.enabled,
+        },
+      },
+    });
+    try {
+      reloadDeviceEntities();
+      await refreshCurrentStates();
+    } catch (refreshError) {
+      console.error("Device updated, but Home Assistant refresh failed:", refreshError);
+    }
+
+    return res.json(device);
+  } catch (error) {
+    console.error("Failed to update device:", error);
+
+    if (isDeviceValidationError(error)) {
+      return res.status(400).json({
+        message: error instanceof Error ? error.message : "Invalid device configuration",
+      });
+    }
+
+    return res.status(500).json({
+      message: "Failed to update device",
+    });
+  }
+
 });
+
+
 
 /* -----------------------------
    ENABLE / DISABLE DEVICE
@@ -103,6 +201,12 @@ router.put("/:id", async (req, res) => {
 router.patch("/:id/enabled", async (req, res) => {
   const id = Number(req.params.id);
 
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({
+      message: "Invalid device ID",
+    });
+  }
+
   const device = getDeviceById(id);
 
   if (!device) {
@@ -111,7 +215,7 @@ router.patch("/:id/enabled", async (req, res) => {
     });
   }
 
-  const enabled = req.body.enabled;
+  const enabled = req.body?.enabled;
 
   if (typeof enabled !== "boolean") {
     return res.status(400).json({
@@ -119,49 +223,56 @@ router.patch("/:id/enabled", async (req, res) => {
     });
   }
 
-  const updatedDevice = updateDevice(id, {
-    ...device,
-    enabled,
-  });
+  try {
+    const updatedDevice = updateDevice(id, { enabled });
 
-  if (!updatedDevice) {
-    return res.status(404).json({
-      message: "Device not found",
+    if (!updatedDevice) {
+      return res.status(404).json({
+        message: "Device not found",
+      });
+    }
+
+    writeAudit({
+      severity: enabled ? "info" : "warning",
+      event: enabled ? "DEVICE_ENABLED" : "DEVICE_DISABLED",
+      actor: (req as any).user.username,
+      target: updatedDevice.name,
+      details: {
+        id: updatedDevice.id,
+        name: updatedDevice.name,
+        entityId: updatedDevice.entityId,
+        enabled,
+      },
+    });
+    try {
+      reloadDeviceEntities();
+      await refreshCurrentStates();
+    } catch (refreshError) {
+      console.error("Device enabled state changed, but Home Assistant refresh failed:", refreshError);
+    }
+
+    return res.json(updatedDevice);
+  } catch (error) {
+    console.error("Failed to change device enabled state:", error);
+
+    return res.status(500).json({
+      message: "Failed to change device enabled state",
     });
   }
-
-  reloadDeviceEntities();
-  await refreshCurrentStates();
-
-writeAudit({
-  severity: enabled ? "info" : "warning",
-
-  event: enabled
-    ? "DEVICE_ENABLED"
-    : "DEVICE_DISABLED",
-
-  actor: (req as any).user.username,
-
-  target: device.name,
-
-  role: (req as any).user.role,
-
-  details: {
-    id: device.id,
-    name: device.name,
-    entityId: device.entityId,
-    enabled,
-  },
 });
 
-  return res.json(updatedDevice);
-});
 
 /* -----------------------------
    DELETE DEVICE
 ------------------------------ */
 router.delete("/:id", async (req, res) => {
   const id = Number(req.params.id);
+
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({
+      message: "Invalid device ID",
+    });
+  }
 
   const device = getDeviceById(id);
 
@@ -171,27 +282,45 @@ router.delete("/:id", async (req, res) => {
     });
   }
 
-  deleteDevice(id);
+  try {
+    const deleted = deleteDevice(id);
 
-  reloadDeviceEntities();
-  await refreshCurrentStates();
+    if (!deleted) {
+      return res.status(404).json({
+        message: "Device not found",
+      });
+    }
 
-writeAudit({
-  severity: "warning",
-  event: "DEVICE_DELETED",
-  actor: (req as any).user.username,
-  target: device.name,
-  role: (req as any).user.role,
-  details: {
-      id: device.id,
-      name: device.name,
-      entityId: device.entityId,
-    },
-  });
+    writeAudit({
+      severity: "warning",
+      event: "DEVICE_DELETED",
+      actor: (req as any).user.username,
+      target: device.name,
+      details: {
+        id: device.id,
+        name: device.name,
+        entityId: device.entityId,
+      },
+    });
+    try {
+      reloadDeviceEntities();
+      await refreshCurrentStates();
+    } catch (refreshError) {
+      console.error("Device deleted, but Home Assistant refresh failed:", refreshError);
+    }
 
-  return res.json({
-    success: true,
-  });
+
+    return res.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error("Failed to delete device:", error);
+
+    return res.status(500).json({
+      message: "Failed to delete device",
+    });
+  }
 });
+
 
 export default router;

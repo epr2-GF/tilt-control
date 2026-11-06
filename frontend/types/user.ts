@@ -1,14 +1,6 @@
-export type Role =
-  | "superadmin"
-  | "admin"
-  | "visiteur"
-  | "epr2"
-  | "restaurant"
-  | "pecheur";
 
-export type UserPermissions = {
-  zones: string[];
-  controls: string[];
+export type UserCapabilities = {
+  manageUsers?: boolean;
 };
 
 export type User = {
@@ -16,12 +8,11 @@ export type User = {
   username: string;
   password?: string;
 
-  role: Role;
-  disabled: boolean;
+  zones: string[];
+  capabilities: UserCapabilities;
 
+  disabled?: boolean;
   accessStart?: string;
   accessEnd?: string;
   remoteAccess?: boolean;
-
-  permissions?: UserPermissions;
 };

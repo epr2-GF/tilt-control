@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -20,31 +21,49 @@ export default function TiltPage() {
   const [devices, setDevices] = useState<any[]>([]);
 
   const hasAccess =
-    user?.permissions?.zones?.includes("tilt") ?? false;
+    user?.zones?.includes("tilt") ?? false;
 
   /*
     AUTH + PERMISSION CHECK
   */
   useEffect(() => {
-    if (user === null) {
-      router.push("/login");
+    if (user === undefined) return;
+
+    if (!user) {
+      router.replace("/login");
       return;
     }
 
-    if (user && !hasAccess) {
-      router.push("/");
+    if (!hasAccess) {
+      router.replace("/");
     }
   }, [user, hasAccess, router]);
 
   /*
-    LOAD DEVICES + REFRESH HOME ASSISTANT STATES
+    LOAD DEVICES ASSIGNED TO TILT
+    AND REFRESH HOME ASSISTANT STATES
   */
   useEffect(() => {
-    if (!hasAccess) return;
+    if (user === undefined || !user || !hasAccess) {
+      setDevices([]);
+      return;
+    }
+
+    let cancelled = false;
 
     async function loadDevices() {
       try {
         const data = await apiFetch("/devices");
+
+        if (cancelled) return;
+
+        if (!Array.isArray(data)) {
+          console.error(
+            "Device API did not return an array:",
+            data
+          );
+          return;
+        }
 
         const zoneDevices = data.filter(
           (device: any) =>
@@ -53,29 +72,52 @@ export default function TiltPage() {
         );
 
         setDevices(zoneDevices);
+
+        // Refresh current Home Assistant states
+        // whenever devices are loaded.
+        await refreshStates();
       } catch (error) {
-        console.error(
-          "Failed loading Tilt devices",
-          error
-        );
+        if (!cancelled) {
+          console.error(
+            "Failed loading Tilt devices",
+            error
+          );
+        }
       }
     }
 
-    loadDevices();
+    // Initial load when entering the zone.
+    void loadDevices();
 
-    // Refresh Home Assistant states whenever
-    // the zone page is opened.
-    refreshStates();
-  }, [hasAccess, refreshStates]);
+    // Refresh devices and Home Assistant states
+    // whenever the page/app becomes visible again.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadDevices();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      cancelled = true;
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, [user, hasAccess, refreshStates]);
 
   /*
     LOADING / ACCESS
   */
-  if (user === undefined) return null;
-
-  if (!user) return null;
-
-  if (!hasAccess) return null;
+  if (user === undefined || !user || !hasAccess) {
+    return null;
+  }
 
   /*
     PAGE
@@ -92,15 +134,11 @@ export default function TiltPage() {
         p-6
       "
     >
-      <div className="mb-6">
-        <BackButton />
-      </div>
-
-      <ZoneHeader
-        title="Zone Tilt"
-        subtitle="Contrôle principal du site"
-        icon={<Building2 size={28} />}
-      />
+<ZoneHeader
+  title="Zone Tilt"
+  icon={<Building2 size={20} />}
+  action={<BackButton />}
+/>
 
       <section
         className="

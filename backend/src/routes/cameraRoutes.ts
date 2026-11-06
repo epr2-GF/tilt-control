@@ -1,3 +1,4 @@
+
 import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware";
 
@@ -7,31 +8,30 @@ router.get(
   "/gate",
   authMiddleware,
   async (req, res) => {
-
     const user = (req as any).user;
 
     /*
-     * Camera is restricted to admin and superadmin.
+     * Cameras are restricted to users with
+     * administrator capability, including GhostAdmin.
      */
-    if (
-      user.role !== "admin" &&
-      user.role !== "superadmin"
-    ) {
+    const isGhostAdmin =
+      String(user?.id) === "0" &&
+      user?.username === "GhostAdmin";
+
+    const canManageUsers =
+      user?.capabilities?.manageUsers === true;
+
+    if (!isGhostAdmin && !canManageUsers) {
       return res.status(403).json({
         message: "Admin access required",
       });
     }
 
     try {
-
-      const haUrl =
-        process.env.HA_URL;
-
-      const haToken =
-        process.env.HA_TOKEN;
+      const haUrl = process.env.HA_URL;
+      const haToken = process.env.HA_TOKEN;
 
       if (!haUrl || !haToken) {
-
         console.error(
           "HA_URL or HA_TOKEN is not configured"
         );
@@ -40,7 +40,6 @@ router.get(
           message:
             "Home Assistant configuration unavailable",
         });
-
       }
 
       /*
@@ -50,20 +49,15 @@ router.get(
         `${haUrl}/api/camera_proxy/camera.portail_fluide`,
         {
           method: "GET",
-
           headers: {
-            Authorization:
-              `Bearer ${haToken}`,
-
+            Authorization: `Bearer ${haToken}`,
             Accept: "image/jpeg",
           },
-
           cache: "no-store",
         }
       );
 
       if (!response.ok) {
-
         console.error(
           "Home Assistant camera request failed:",
           response.status,
@@ -74,19 +68,16 @@ router.get(
           message:
             "Impossible de récupérer l'image du portail",
         });
-
       }
 
-      const image =
-        Buffer.from(
-          await response.arrayBuffer()
-        );
+      const image = Buffer.from(
+        await response.arrayBuffer()
+      );
 
       res.setHeader(
         "Content-Type",
-        response.headers.get(
-          "content-type"
-        ) || "image/jpeg"
+        response.headers.get("content-type") ||
+          "image/jpeg"
       );
 
       res.setHeader(
@@ -94,20 +85,11 @@ router.get(
         "no-store, no-cache, must-revalidate, proxy-revalidate"
       );
 
-      res.setHeader(
-        "Pragma",
-        "no-cache"
-      );
-
-      res.setHeader(
-        "Expires",
-        "0"
-      );
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
 
       return res.send(image);
-
     } catch (error) {
-
       console.error(
         "Failed to capture gate camera:",
         error
@@ -117,7 +99,6 @@ router.get(
         message:
           "Impossible de contacter Home Assistant",
       });
-
     }
   }
 );

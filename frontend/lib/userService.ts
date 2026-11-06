@@ -35,3 +35,13 @@ export async function toggleUserDisabled(id: string): Promise<User[]> {
     method: "PATCH",
   });
 }
+
+
+// GET user credentials for authorised administrators
+export async function getUserCredentials(
+  id: string
+): Promise<{ username: string; password: string }> {
+  return apiFetch(`/users/${id}/credentials`, {
+    method: "GET",
+  });
+}

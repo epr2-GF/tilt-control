@@ -6,6 +6,23 @@ if (!HA_URL || !HA_TOKEN) {
   console.warn("⚠️ Warning: HA_URL or HA_TOKEN is missing from environment variables.");
 }
 
+
+
+const ALLOWED_SERVICES: Record<string, string[]> = {
+  light: ["turn_on", "turn_off", "toggle"],
+  switch: ["turn_on", "turn_off", "toggle"],
+  input_boolean: ["turn_on", "turn_off", "toggle"],
+  lock: ["lock", "unlock"],
+  cover: [
+    "open_cover",
+    "close_cover",
+    "stop_cover",
+  ],
+  script: ["turn_on"],
+  input_number: ["set_value"],
+};
+
+
 /**
  * Service layer for local Home Assistant REST API.
  */
@@ -62,6 +79,25 @@ async triggerService(
 ) {
   try {
 
+
+if (!ALLOWED_SERVICES[domain]?.includes(service)) {
+  throw new Error("Home Assistant service is not permitted");
+}
+
+
+if (
+  typeof entityId !== "string" ||
+  !/^[a-z0-9_]+\.[a-z0-9_]+$/i.test(entityId)
+) {
+  throw new Error("Invalid Home Assistant entity ID");
+}
+
+
+if ("entity_id" in serviceData) {
+  throw new Error("serviceData must not override entity_id");
+}
+
+
     await this.getEntityState(entityId);
 
     const response = await fetch(
@@ -73,9 +109,9 @@ async triggerService(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          entity_id: entityId,
-          ...serviceData,
-        }),
+  ...serviceData,
+  entity_id: entityId,
+}),
       }
     );
 

@@ -4,7 +4,6 @@ import path from "path";
 
 export type ActiveSession = {
   username: string;
-  role: string;
   lastSeen: number;
   online: boolean;
 };
@@ -157,27 +156,14 @@ cleanupOldSessions();
    UPDATE USER ACTIVITY
    ========================================================= */
 
-export function updateSession(
-  username: string,
-  role: string
-) {
-
+export function updateSession(username: string) {
   sessions[username] = {
-
     username,
-
-    role,
-
-    lastSeen:
-      Date.now(),
-    
+    lastSeen: Date.now(),
     online: true,
-
   };
 
-
   saveSessions();
-
 }
 
 
@@ -188,6 +174,23 @@ export function updateSession(
 
 export function getActiveSessions() {
   cleanupOldSessions();
+
+  const now = Date.now();
+  let changed = false;
+
+  for (const session of Object.values(sessions)) {
+    if (
+      session.online &&
+      now - session.lastSeen > ACTIVE_SESSION_MS
+    ) {
+      session.online = false;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    saveSessions();
+  }
 
   return Object.values(sessions)
     .filter(session => session.online);

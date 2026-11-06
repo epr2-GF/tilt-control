@@ -27,9 +27,13 @@ export default function LoginPage() {
 
       const data = await loginService(username, password);
 
-      await loginUser(data.token);
+const verified = await loginUser(data.token);
 
-      router.replace("/");
+if (verified) {
+  router.replace("/");
+} else {
+  setError("La vérification de la session a échoué. Veuillez réessayer.");
+}
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Échec de connexion");

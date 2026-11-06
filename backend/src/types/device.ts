@@ -20,6 +20,14 @@ export interface Device {
 
   button2Entity?: string;
 
+  /*
+   * Optional entities used by the thermostat card.
+   */
+
+  humidityEntity?: string;
+
+  setpointEntity?: string;
+
 cardType:
   | "device"
   | "binary"
@@ -29,7 +37,8 @@ cardType:
   | "lock"
   | "minilog"
   | "dimmer"
-  | "runScript";
+  | "runScript"
+  | "thermostat";
 
   statusTrue?: string;
 

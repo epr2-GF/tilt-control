@@ -4,6 +4,11 @@ import { timeAccessMiddleware } from "../middleware/timeAccessMiddleware";
 import { locationMiddleware } from "../middleware/locationMiddleware";
 import { authMiddleware } from "../middleware/authMiddleware";
 import {
+  canAccessDevice,
+  getAccessibleEntityIds,
+  isGhostAdmin,
+} from "../services/deviceAccessService";
+import {
   registerStreamClient,
   getCurrentStates,
   refreshHAStates,
@@ -25,13 +30,43 @@ import {
 
 const router = Router();
 
+
+function isValidDeviceAction(
+  cardType: string,
+  action: unknown
+): boolean {
+  if (typeof action !== "string") return false;
+
+  const allowedActions: Record<string, string[]> = {
+    device: ["turn_on", "turn_off", "toggle"],
+    binary: ["turn_on", "turn_off", "toggle"],
+    sensor: [],
+    minilog: [],
+    onOff: ["on", "off"],
+    lock: ["lock", "unlock"],
+    dimmer: ["turn_on", "turn_off", "set_brightness"],
+    rollerShutter: ["open_cover", "close_cover", "stop_cover"],
+    runScript: ["run_script"],
+    thermostat: ["set_temperature", "off"],
+  };
+
+  return allowedActions[cardType]?.includes(action) ?? false;
+}
+
+
 /**
  * GET /devices
  *
- * Returns all configured devices.
+ * Returns only devices the authenticated user may access.
  */
-router.get("/", (req, res) => {
-  res.json(getDevices());
+router.get("/", authMiddleware, (req, res) => {
+  const user = (req as any).user;
+
+  const accessibleDevices = getDevices().filter(device =>
+    canAccessDevice(user, device)
+  );
+
+  return res.json(accessibleDevices);
 });
 
 
@@ -39,15 +74,15 @@ router.get("/", (req, res) => {
  * GET /devices/status-log/:entityId
  *
  * Returns the five most recent status-log entries
- * for a single Home Assistant entity.
- *
- * Used by the Mini Log card.
+ * for an entity belonging to an accessible device.
  */
 router.get(
   "/status-log/:entityId",
+  authMiddleware,
   (req, res) => {
     try {
-      const entityId = req.params.entityId;
+      const entityId = String(req.params.entityId);
+      const user = (req as any).user;
 
       if (!entityId) {
         return res.status(400).json({
@@ -55,23 +90,29 @@ router.get(
         });
       }
 
-      const logs =
-        getDeviceStatusLogs(entityId);
-
-      return res.json(
-        logs.slice(0, 5)
+      const device = getDevices().find(item =>
+        [
+          item.entityId,
+          item.statusEntity,
+          item.button1Entity,
+          item.button2Entity,
+        ].includes(entityId)
       );
 
+      if (!device || !canAccessDevice(user, device)) {
+        return res.status(403).json({
+          message: "Device access denied",
+        });
+      }
+
+      const logs = getDeviceStatusLogs(entityId);
+
+      return res.json(logs.slice(0, 5));
     } catch (error) {
-
-      console.error(
-        "Failed to load device status logs",
-        error
-      );
+      console.error("Failed to load device status logs", error);
 
       return res.status(500).json({
-        error:
-          "Failed to load device status logs",
+        error: "Failed to load device status logs",
       });
     }
   }
@@ -89,7 +130,7 @@ router.delete(
     const user = (req as any).user;
 
     // Superadmin only
-    if (user.role !== "superadmin") {
+   if (!isGhostAdmin(user)) {
       return res.status(403).json({
         message: "Superadmin access required",
       });
@@ -148,11 +189,61 @@ router.delete(
  *
  * The ON/OFF card deliberately does NOT use toggle.
  */
+
 router.post(
   "/trigger",
+  authMiddleware,
+  (req, res, next) => {
+    const user = (req as any).user;
+    const deviceId = Number(req.body?.deviceId);
+
+    if (!Number.isSafeInteger(deviceId) || deviceId <= 0) {
+      return res.status(400).json({
+        message: "Invalid device ID",
+      });
+    }
+
+    const device = getDeviceById(deviceId);
+
+    if (!device) {
+      return res.status(404).json({
+        error: "Device not found",
+      });
+    }
+
+    if (!canAccessDevice(user, device)) {
+      writeAudit({
+        severity: "warning",
+        event: "DEVICE_COMMAND_DENIED",
+        actor: user.username,
+        target: device.name,
+        details: {
+          deviceId: device.id,
+          action: req.body?.action,
+          result: "denied",
+          reason: "zone_access",
+        },
+      });
+
+      return res.status(403).json({
+        code: "DEVICE_ACCESS_DENIED",
+        message: "Vous n'avez pas accès à cet appareil",
+      });
+    }
+
+    if (device.enabled === false) {
+      return res.status(403).json({
+        code: "DEVICE_DISABLED",
+        message: "Cet appareil est désactivé",
+      });
+    }
+
+    return next();
+  },
   timeAccessMiddleware,
   locationMiddleware,
   async (req, res) => {
+
     const user = (req as any).user;
 
     if (user.timeAccessAllowed === false) {
@@ -165,22 +256,50 @@ router.post(
     try {
       const { deviceId, action } = req.body;
 
-      const savedDevice = getDeviceById(
-        Number(deviceId)
-      );
+const savedDevice = getDeviceById(
+  Number(deviceId)
+);
 
-      if (!savedDevice) {
-        return res.status(404).json({
-          error: "Device not found",
-        });
-      }
+if (!savedDevice) {
+  return res.status(404).json({
+    error: "Device not found",
+  });
+}
 
-      if (savedDevice.enabled === false) {
-        return res.status(403).json({
-          code: "DEVICE_DISABLED",
-          message: "Cet appareil est désactivé",
-        });
-      }
+// Enforce zone permissions on the server before any HA command.
+if (!canAccessDevice(user, savedDevice)) {
+  writeAudit({
+    severity: "warning",
+    event: "DEVICE_COMMAND_DENIED",
+    actor: user.username,
+    target: savedDevice.name,
+    details: {
+      deviceId: savedDevice.id,
+      action,
+      result: "denied",
+      reason: "zone_access",
+    },
+  });
+
+  return res.status(403).json({
+    code: "DEVICE_ACCESS_DENIED",
+    message: "Vous n'avez pas accès à cet appareil",
+  });
+}
+
+if (savedDevice.enabled === false) {
+  return res.status(403).json({
+    code: "DEVICE_DISABLED",
+    message: "Cet appareil est désactivé",
+  });
+}
+
+if (!isValidDeviceAction(savedDevice.cardType, action)) {
+  return res.status(400).json({
+    code: "INVALID_DEVICE_ACTION",
+    message: "Action invalide pour ce type d'appareil",
+  });
+}
 
       /*
        * ---------------------------------------------------------
@@ -190,6 +309,70 @@ router.post(
 
       let entityId = savedDevice.entityId;
       let haService = action;
+
+      /*
+ * ---------------------------------------------------------
+ * THERMOSTAT
+ * ---------------------------------------------------------
+ *
+ * set_temperature:
+ *   Writes the selected temperature to the configured
+ *   input_number helper.
+ *
+ * off:
+ *   Writes 0 to disable heating.
+ */
+
+let serviceData: Record<string, any> = {};
+
+if (savedDevice.cardType === "thermostat") {
+
+  if (!savedDevice.setpointEntity) {
+    return res.status(400).json({
+      code: "THERMOSTAT_SETPOINT_NOT_CONFIGURED",
+      message: "L'entité de consigne du thermostat n'est pas configurée",
+    });
+  }
+
+  if (!savedDevice.setpointEntity.startsWith("input_number.")) {
+    return res.status(400).json({
+      code: "INVALID_THERMOSTAT_ENTITY",
+      message: "Le thermostat doit utiliser une entité input_number",
+    });
+  }
+
+  entityId = savedDevice.setpointEntity;
+
+  if (action === "set_temperature") {
+    const temperature = Number(req.body.temperature);
+
+    if (
+      !Number.isFinite(temperature) ||
+      temperature < 5 ||
+      temperature > 35
+    ) {
+      return res.status(400).json({
+        code: "INVALID_TEMPERATURE",
+        message: "La température doit être comprise entre 5 et 35 °C",
+      });
+    }
+
+    haService = "set_value";
+
+    serviceData = {
+      value: temperature,
+    };
+
+  } else if (action === "off") {
+
+    haService = "set_value";
+
+    serviceData = {
+      value: 0,
+    };
+  }
+}
+
       if (
   savedDevice.cardType === "dimmer" &&
   action === "set_brightness"
@@ -293,8 +476,6 @@ router.post(
  *   0-100 (%)
  */
 
-let serviceData:
-  Record<string, any> = {};
 
 if (
   savedDevice.cardType === "dimmer" &&
@@ -518,8 +699,6 @@ details: {
       : undefined,
   result: "success",
 },
-
-        role: user.role,
       });
 
       return res.json({
@@ -589,7 +768,6 @@ details: {
               "Failed to execute HA service",
           },
 
-          role: user?.role,
         });
 
       } catch (auditError) {
@@ -639,20 +817,38 @@ details: {
  * Requests a fresh state update from Home Assistant
  * and returns the cached states.
  */
+
+/**
+ * GET /devices/state
+ *
+ * Requests a fresh state update from Home Assistant
+ * and returns only states the user is authorised to access.
+ */
 router.get(
   "/state",
+  authMiddleware,
   async (req, res) => {
     try {
       refreshHAStates();
 
       await new Promise(
-        resolve =>
-          setTimeout(resolve, 500)
+        resolve => setTimeout(resolve, 500)
       );
 
-      res.json(
-        getCurrentStates()
+      const user = (req as any).user;
+      const states = getCurrentStates();
+      const allowedEntities = getAccessibleEntityIds(
+        user,
+        getDevices()
       );
+
+      const filteredStates = Object.fromEntries(
+        Object.entries(states).filter(([entityId]) =>
+          allowedEntities.has(entityId)
+        )
+      );
+
+      return res.json(filteredStates);
 
     } catch (error) {
       console.error(
@@ -660,23 +856,37 @@ router.get(
         error
       );
 
-      res.json(
-        getCurrentStates()
+      const user = (req as any).user;
+      const states = getCurrentStates();
+      const allowedEntities = getAccessibleEntityIds(
+        user,
+        getDevices()
       );
+
+      const filteredStates = Object.fromEntries(
+        Object.entries(states).filter(([entityId]) =>
+          allowedEntities.has(entityId)
+        )
+      );
+
+      return res.json(filteredStates);
     }
   }
 );
 
+
+
 /**
  * GET /devices/stream
  *
- * Establishes an SSE connection between
- * the browser and backend for real-time
- * Home Assistant updates.
+ * Establishes an authenticated SSE connection
+ * for authorised Home Assistant updates.
  */
 router.get(
   "/stream",
+  authMiddleware,
   (req, res) => {
+    const user = (req as any).user;
 
     res.setHeader(
       "Content-Type",
@@ -700,12 +910,11 @@ router.get(
 
     res.flushHeaders();
 
-    res.write(
-      ": connected\n\n"
-    );
+    res.write(": connected\n\n");
 
-    registerStreamClient(res);
+    registerStreamClient(res, String(user.id));
   }
 );
+
 
 export default router;

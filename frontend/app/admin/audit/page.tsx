@@ -37,45 +37,50 @@ type AuditLog = {
 export default function AuditPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const isGhostAdmin =
+  user?.id === "0" && user?.username === "GhostAdmin";
   const [logs, setLogs] = useState<AuditLog[]>([]);
 const { showToast } = useToast();
-const [showClearConfirm, setShowClearConfirm] =
-  useState(false);
-
+const [showClearConfirm, setShowClearConfirm] = useState(false);
   useEffect(() => {
     if (user === undefined) return;
 
     if (!user) {
-      router.push("/login");
+      router.replace("/login");
       return;
     }
 
-if (user.role !== "superadmin") {
-  router.push("/");
-  return;
-}
+    if (
+      user.capabilities?.manageUsers !== true &&
+      !(user.id === "0" && user.username === "GhostAdmin")
+    ) {
+      router.replace("/");
+      return;
+    }
+
+    let cancelled = false;
 
     async function loadLogs() {
       try {
         const data = await apiFetch("/admin/audit");
 
-        setLogs(
-          Array.isArray(data) ? data : []
-        );
+        if (!cancelled) {
+          setLogs(Array.isArray(data) ? data : []);
+        }
       } catch (error) {
-        console.error(
-          "Failed to load audit logs",
-          error
-        );
+        if (!cancelled) {
+          console.error("Failed to load audit logs", error);
+          showToast("Impossible de charger le journal", "error");
+        }
       }
     }
 
-    loadLogs();
-  }, [user, router]);
+    void loadLogs();
 
-  if (user === undefined || !user) {
-    return null;
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [user, router, showToast]);
 
   /*
    * Only show the last 3 days.
@@ -573,6 +578,7 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
 <div className="mb-6 flex items-center justify-between gap-3">
   <BackButton />
 
+{isGhostAdmin && (
   <button
     onClick={() => setShowClearConfirm(true)}
     className="
@@ -593,6 +599,7 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
   >
     Effacer le journal
   </button>
+)}
 </div>
 
 <ZoneHeader
@@ -732,7 +739,7 @@ if (event === "LOGIN_DISABLED_ACCOUNT") {
         )}
 
       </div>
-{showClearConfirm && (
+{isGhostAdmin && showClearConfirm && (
   <div
     className="
       fixed

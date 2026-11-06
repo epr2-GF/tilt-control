@@ -3,16 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, MessageSquare } from "lucide-react";
-
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { apiFetch } from "@/lib/api";
-
 export default function SiteMessagePage() {
   const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
+const isGhostAdmin =
+  user?.id === "0" && user?.username === "GhostAdmin";
 
+const canManageSiteMessage =
+  user?.capabilities?.manageUsers === true || isGhostAdmin;
   const [message, setMessage] = useState("");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [updatedBy, setUpdatedBy] = useState<string | null>(null);
@@ -24,96 +26,103 @@ export default function SiteMessagePage() {
   // AUTH GUARD
   // -----------------------------
 
-  useEffect(() => {
-    if (user === null) {
-      router.push("/login");
-      return;
-    }
+useEffect(() => {
+  if (user === undefined) return;
 
-    if (
-      user &&
-      user.role !== "admin" &&
-      user.role !== "superadmin"
-    ) {
-      router.push("/");
-    }
-  }, [user, router]);
+  if (!user) {
+    router.replace("/login");
+    return;
+  }
 
+  if (!canManageSiteMessage) {
+    router.replace("/");
+  }
+}, [user, canManageSiteMessage, router]);
   // -----------------------------
   // LOAD MESSAGE
   // -----------------------------
 
-  useEffect(() => {
-    if (!user) return;
+useEffect(() => {
+  if (user === undefined) return;
 
-    async function loadMessage() {
-      try {
-        const data = await apiFetch("/admin/site-message");
+  if (!user || !canManageSiteMessage) {
+    setLoading(false);
+    return;
+  }
 
-        setMessage(data.message || "");
-        setUpdatedAt(data.updatedAt || null);
-        setUpdatedBy(data.updatedBy || null);
-      } catch (error) {
-        console.error(
-          "Failed to load site message",
-          error
-        );
+  let cancelled = false;
 
-        showToast(
-          "Impossible de charger le message",
-          "error"
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadMessage();
-  }, [user, showToast]);
-
-  // -----------------------------
-  // SAVE MESSAGE
-  // -----------------------------
-
-  async function handleSave() {
-    if (saving || deleting) return;
-
-    setSaving(true);
-
+  async function loadMessage() {
     try {
-      const data = await apiFetch(
-        "/admin/site-message",
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            message,
-          }),
-        }
-      );
+      const data = await apiFetch("/admin/site-message");
+
+      if (cancelled) return;
 
       setMessage(data.message || "");
       setUpdatedAt(data.updatedAt || null);
       setUpdatedBy(data.updatedBy || null);
+    } catch (error) {
+      if (cancelled) return;
 
-      showToast(
-        "Message enregistré",
-        "success"
-      );
-    } catch (error: any) {
       console.error(
-        "Failed to save site message",
+        "Failed to load site message",
         error
       );
 
       showToast(
-        error.message ||
-          "Impossible d'enregistrer le message",
+        "Impossible de charger le message",
         "error"
       );
     } finally {
-      setSaving(false);
+      if (!cancelled) {
+        setLoading(false);
+      }
     }
   }
+
+  void loadMessage();
+
+  return () => {
+    cancelled = true;
+  };
+}, [user, canManageSiteMessage, showToast]);
+  // -----------------------------
+  // SAVE MESSAGE
+  // -----------------------------
+
+
+async function handleSave() {
+  if (saving || deleting) return;
+
+  setSaving(true);
+
+  try {
+    const data = await apiFetch(
+      "/admin/site-message",
+      {
+        method: "PUT",
+        body: JSON.stringify({ message }),
+      }
+    );
+
+    setMessage(data.message || "");
+    setUpdatedAt(data.updatedAt || null);
+    setUpdatedBy(data.updatedBy || null);
+
+    showToast("Message enregistré", "success");
+
+    router.push("/");
+  } catch (error: any) {
+    console.error("Failed to save site message", error);
+
+    showToast(
+      error.message || "Impossible d'enregistrer le message",
+      "error"
+    );
+  } finally {
+    setSaving(false);
+  }
+}
 
   // -----------------------------
   // DELETE MESSAGE
@@ -182,7 +191,7 @@ export default function SiteMessagePage() {
     );
   }
 
-  if (!user) return null;
+  if (!user || !canManageSiteMessage) return null;
 
   // -----------------------------
   // PAGE
@@ -241,8 +250,12 @@ export default function SiteMessagePage() {
           }
           placeholder="Entrez le message important..."
           rows={8}
+          maxLength={5000}
           className="w-full bg-slate-800 border border-slate-700 rounded-lg p-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-y"
         />
+        <p className="mt-2 text-xs text-slate-500 text-right">
+  {message.length.toLocaleString("fr-FR")} / 5 000 caractères
+</p>
 
 
         {/* FOOTER */}
@@ -253,7 +266,7 @@ export default function SiteMessagePage() {
 
           <div className="text-xs text-slate-500">
 
-           {user?.role === "superadmin" && (
+          {user?.id === "0" && user?.username === "GhostAdmin" && (
   <div className="text-xs text-slate-500">
 
     {updatedAt && (

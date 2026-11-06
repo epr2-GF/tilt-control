@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -20,17 +21,25 @@ export default function Epr2Page() {
   const [devices, setDevices] = useState<any[]>([]);
 
   const hasAccess =
-    user?.permissions?.zones?.includes("epr2") ?? false;
+    user?.zones?.includes("epr2") ?? false;
 
   /*
-    LOAD DEVICES
+    LOAD DEVICES ASSIGNED TO EPR2
+    AND REFRESH HOME ASSISTANT STATES
   */
   useEffect(() => {
-    if (!hasAccess) return;
+    if (user === undefined || !user || !hasAccess) {
+      setDevices([]);
+      return;
+    }
+
+    let cancelled = false;
 
     async function loadDevices() {
       try {
         const data = await apiFetch("/devices");
+
+        if (cancelled) return;
 
         if (!Array.isArray(data)) {
           console.error(
@@ -51,24 +60,23 @@ export default function Epr2Page() {
         // whenever devices are loaded.
         await refreshStates();
       } catch (error) {
-        console.error(
-          "Failed loading EPR2 devices",
-          error
-        );
+        if (!cancelled) {
+          console.error(
+            "Failed loading EPR2 devices",
+            error
+          );
+        }
       }
     }
 
     // Initial load when entering the zone.
-    loadDevices();
+    void loadDevices();
 
     // Refresh devices and Home Assistant states
     // whenever the page/app becomes visible again.
     const handleVisibilityChange = () => {
-      if (
-        document.visibilityState === "visible" &&
-        hasAccess
-      ) {
-        loadDevices();
+      if (document.visibilityState === "visible") {
+        void loadDevices();
       }
     };
 
@@ -78,39 +86,35 @@ export default function Epr2Page() {
     );
 
     return () => {
+      cancelled = true;
+
       document.removeEventListener(
         "visibilitychange",
         handleVisibilityChange
       );
     };
-  }, [hasAccess, refreshStates]);
+  }, [user, hasAccess, refreshStates]);
 
   /*
     AUTH + PERMISSION CHECK
   */
   useEffect(() => {
-    if (user === null) {
-      router.push("/login");
+    if (user === undefined) return;
+
+    if (!user) {
+      router.replace("/login");
       return;
     }
 
-    if (user && !hasAccess) {
-      router.push("/");
+    if (!hasAccess) {
+      router.replace("/");
     }
   }, [user, hasAccess, router]);
 
   /*
     LOADING / ACCESS
   */
-  if (user === undefined) {
-    return null;
-  }
-
-  if (!user) {
-    return null;
-  }
-
-  if (!hasAccess) {
+  if (user === undefined || !user || !hasAccess) {
     return null;
   }
 
@@ -129,15 +133,11 @@ export default function Epr2Page() {
         p-6
       "
     >
-      <div className="mb-6">
-        <BackButton />
-      </div>
-
-      <ZoneHeader
-        title="Zone EPR2"
-        subtitle="Capteurs et équipements EPR2"
-        icon={<Warehouse size={28} />}
-      />
+<ZoneHeader
+  title="EPR2"
+  icon={<Warehouse size={20} />}
+  action={<BackButton />}
+/>
 
       <section
         className="

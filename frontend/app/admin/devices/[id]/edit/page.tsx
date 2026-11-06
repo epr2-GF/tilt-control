@@ -10,14 +10,19 @@ import {
 } from "react";
 
 import { useParams } from "next/navigation";
-
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import BackButton from "@/components/BackButton";
 import ZoneHeader from "@/components/ZoneHeader";
 import DeviceForm from "@/components/DeviceForm";
 import { apiFetch } from "@/lib/api";
-
 export default function EditDevicePage() {
   const params = useParams();
+  const router = useRouter();
+const { user } = useAuth();
+
+const isGhostAdmin =
+  user?.id === "0" && user?.username === "GhostAdmin";
 
   const id = Number(params.id);
 
@@ -31,41 +36,63 @@ export default function EditDevicePage() {
     useState("");
 
   useEffect(() => {
+    if (user === undefined) return;
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    if (!isGhostAdmin) {
+      router.replace("/");
+      return;
+    }
+
+    let cancelled = false;
+
     async function loadDevice() {
       try {
         const data = await apiFetch(
           `/admin/devices/${id}`
         );
 
-        setDevice(data);
-
+        if (!cancelled) {
+          setDevice(data);
+        }
       } catch (err: any) {
         console.error(
           "Failed to load device",
           err
         );
 
-        setError(
-          err?.message ||
-            "Impossible de charger l'appareil."
-        );
-
+        if (!cancelled) {
+          setError(
+            err?.message ||
+              "Impossible de charger l'appareil."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
-    if (
-      Number.isFinite(id)
-    ) {
-      loadDevice();
+    if (Number.isFinite(id)) {
+      void loadDevice();
     } else {
       setLoading(false);
-      setError(
-        "Identifiant d'appareil invalide."
-      );
+      setError("Identifiant d'appareil invalide.");
     }
-  }, [id]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user, isGhostAdmin, router]);
+
+    if (user === undefined || !isGhostAdmin) {
+    return null;
+  }
 
   return (
     <main className="
@@ -138,6 +165,10 @@ export default function EditDevicePage() {
                   device.button1Entity || "",
                 button2Entity:
                   device.button2Entity || "",
+                humidityEntity:
+                  device.humidityEntity || "",
+                setpointEntity:
+                  device.setpointEntity || "",
                 cardType:
                   device.cardType,
                 statusTrue:

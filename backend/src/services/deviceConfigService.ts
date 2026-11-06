@@ -7,52 +7,50 @@ const DEVICE_FILE = path.join(
 );
 
 export function getConfiguredEntities(): string[] {
-
-  const raw = fs.readFileSync(
-    DEVICE_FILE,
-    "utf8"
-  );
-
+  const raw = fs.readFileSync(DEVICE_FILE, "utf8");
   const devices = JSON.parse(raw) as any[];
 
-  const entities = devices.flatMap((device:any)=>[
-    device.entityId,        // command entity
-    device.statusEntity      // status entity
+  const entities = devices.flatMap((device: any) => [
+    device.entityId,
+    device.statusEntity,
+    device.button1Entity,
+    device.button2Entity,
+    device.humidityEntity,
+    device.setpointEntity,
   ]);
 
   return [
     ...new Set(
       entities.filter(
-        (entity): entity is string => Boolean(entity)
+        (entity): entity is string =>
+          typeof entity === "string" && entity.length > 0
       )
-    )
+    ),
   ];
-
 }
+
 export function getDeviceStatusLogEntities(): string[] {
-
-  const raw = fs.readFileSync(
-    DEVICE_FILE,
-    "utf8"
-  );
-
+  const raw = fs.readFileSync(DEVICE_FILE, "utf8");
   const devices = JSON.parse(raw) as any[];
 
   const entities = devices
     .filter(
-      (device: any) =>
-        device.cardType !== "sensor"
+      (device: any) => device.cardType !== "sensor"
     )
     .flatMap((device: any) => [
       device.entityId,
       device.statusEntity,
+      device.button1Entity,
+      device.button2Entity,
+      device.humidityEntity,
+      device.setpointEntity,
     ]);
 
   return [
     ...new Set(
       entities.filter(
         (entity): entity is string =>
-          Boolean(entity)
+          typeof entity === "string" && entity.length > 0
       )
     ),
   ];

@@ -18,6 +18,10 @@ export interface Device {
 
   icon: string;
 
+  humidityEntity?: string;
+  
+  setpointEntity?: string;
+
   enabled: boolean;
 
   sortOrder: number;

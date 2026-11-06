@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
+import { useAuth } from "@/context/AuthContext";
 import {
   Activity,
   Plus,
@@ -19,7 +19,10 @@ import { apiFetch } from "@/lib/api";
 
 export default function DevicesAdminPage() {
   const router = useRouter();
+  const { user } = useAuth();
 
+  const isGhostAdmin =
+    user?.id === "0" && user?.username === "GhostAdmin";
   const [devices, setDevices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDeviceId, setDeleteDeviceId] =
@@ -44,9 +47,21 @@ export default function DevicesAdminPage() {
     }
   }
 
-  useEffect(() => {
-    loadDevices();
-  }, []);
+useEffect(() => {
+  if (user === undefined) return;
+
+  if (!user) {
+    router.replace("/login");
+    return;
+  }
+
+  if (!isGhostAdmin) {
+    router.replace("/");
+    return;
+  }
+
+  void loadDevices();
+}, [user, isGhostAdmin, router]);
 
   async function deleteDevice(id: number) {
     try {
@@ -91,13 +106,17 @@ export default function DevicesAdminPage() {
     }
   }
 
-  const selectedDeleteDevice =
-    devices.find(
-      (device) =>
-        device.id === deleteDeviceId
-    );
+const selectedDeleteDevice =
+  devices.find(
+    (device) =>
+      device.id === deleteDeviceId
+  );
 
-  return (
+if (user === undefined || !isGhostAdmin) {
+  return null;
+}
+
+return (
     <main className="
       min-h-screen
       bg-gradient-to-br

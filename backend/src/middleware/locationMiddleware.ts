@@ -10,91 +10,61 @@ export function locationMiddleware(
   next: NextFunction
 ) {
   const user = (req as any).user;
+  const { latitude, longitude } = req.body ?? {};
 
-  const { latitude, longitude } = req.body;
+  const isGhostAdmin =
+    user?.id === "0" && user?.username === "GhostAdmin";
 
-  console.log("📍 Location check:", {
-    user: user?.username,
-    role: user?.role,
-    remoteAccess: user?.remoteAccess,
-    latitude,
-    longitude,
-  });
+  const isAdministrator =
+    isGhostAdmin ||
+    user?.capabilities?.manageUsers === true;
 
-  // Admins and superadmins always allowed
-  if (
-    user?.role === "admin" ||
-    user?.role === "superadmin"
-  ) {
+  // Administrators bypass GPS restrictions.
+  if (isAdministrator) {
     user.locationAllowed = true;
-
-    console.log("🌍 Admin/Superadmin location bypass");
-
     return next();
   }
 
-  // Users with remote access enabled
+  // Ordinary users with remote access enabled.
   if (user?.remoteAccess === true) {
     user.locationAllowed = true;
-
-    console.log("🌍 Remote access enabled");
-
     return next();
   }
 
-  // Missing GPS
-  if (latitude == null || longitude == null) {
+  // Validate GPS coordinates.
+  if (
+    typeof latitude !== "number" ||
+    typeof longitude !== "number" ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
     return res.status(400).json({
-      message: "Location required",
+      message: "Missing or invalid location",
     });
   }
 
-  // Calculate distance
-  const result = isWithinSiteRadius(
-    latitude,
-    longitude
-  );
+  const result = isWithinSiteRadius(latitude, longitude);
 
-  console.log("🏠 Site configuration:", {
-    latitude: process.env.SITE_LATITUDE,
-    longitude: process.env.SITE_LONGITUDE,
-    radius: process.env.SITE_RADIUS_METERS,
-  });
-
-  console.log("📱 User location:", {
-    latitude,
-    longitude,
-  });
-
-  console.log("📏 Distance:", {
-    metres: result.distance.toFixed(1),
-    inside: result.inside,
-  });
-
+  // Allow users inside the permitted site radius.
   if (result.inside) {
     user.locationAllowed = true;
-
-    console.log("✅ User inside permitted area");
-
     return next();
   }
 
+  // Deny and audit users outside the permitted radius.
   user.locationAllowed = false;
 
-  console.log("❌ User outside permitted area");
-
-  const device = getDeviceById(
-    Number(req.body?.deviceId)
-  );
+  const device = getDeviceById(Number(req.body?.deviceId));
 
   writeAudit({
     severity: "info",
     event: "DEVICE_COMMAND_DENIED",
     actor: user.username,
-    target:
-      device?.name ||
-      String(req.body?.deviceId),
-
+    target: device?.name || String(req.body?.deviceId),
     details: {
       deviceId: req.body?.deviceId,
       action: req.body?.action,
@@ -102,12 +72,9 @@ export function locationMiddleware(
       reason: "location",
       message: "En dehors de la zone autorisée",
     },
-
-    role: user.role,
   });
 
   return res.status(403).json({
     message: "En dehors de la zone autorisée",
   });
 }
-

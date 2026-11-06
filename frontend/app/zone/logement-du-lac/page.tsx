@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -20,56 +21,106 @@ export default function LogementDuLacPage() {
   const [devices, setDevices] = useState<any[]>([]);
 
   const hasAccess =
-    user?.permissions?.zones?.includes("logement-du-lac") ?? false;
+    user?.zones?.includes("logement-du-lac") ?? false;
 
   /*
-    LOAD DEVICES + REFRESH HOME ASSISTANT STATES
+    LOAD DEVICES ASSIGNED TO LOGEMENT DU LAC
+    AND REFRESH HOME ASSISTANT STATES
   */
   useEffect(() => {
+    if (user === undefined || !user || !hasAccess) {
+      setDevices([]);
+      return;
+    }
+
+    let cancelled = false;
+
     async function loadDevices() {
       try {
         const data = await apiFetch("/devices");
 
+        if (cancelled) return;
+
+        if (!Array.isArray(data)) {
+          console.error(
+            "Device API did not return an array:",
+            data
+          );
+          return;
+        }
+
         const zoneDevices = data.filter(
           (device: any) =>
-            device.zones.includes("logement-du-lac")
+            device.zones?.includes("logement-du-lac")
         );
 
         setDevices(zoneDevices);
+
+        // Refresh current Home Assistant states
+        // whenever devices are loaded.
+        await refreshStates();
       } catch (error) {
-        console.error(
-          "Failed loading logement du lac devices",
-          error
-        );
+        if (!cancelled) {
+          console.error(
+            "Failed loading logement du lac devices",
+            error
+          );
+        }
       }
     }
 
-    if (hasAccess) {
-      loadDevices();
-      refreshStates();
-    }
-  }, [hasAccess, refreshStates]);
+    // Initial load when entering the zone.
+    void loadDevices();
+
+    // Refresh devices and Home Assistant states
+    // whenever the page/app becomes visible again.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadDevices();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      cancelled = true;
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, [user, hasAccess, refreshStates]);
 
   /*
     AUTH + PERMISSION CHECK
   */
   useEffect(() => {
-    if (user === null) {
-      router.push("/login");
+    if (user === undefined) return;
+
+    if (!user) {
+      router.replace("/login");
       return;
     }
 
-    if (user && !hasAccess) {
-      router.push("/");
+    if (!hasAccess) {
+      router.replace("/");
     }
   }, [user, hasAccess, router]);
 
-  if (user === undefined) return null;
+  /*
+    LOADING / ACCESS
+  */
+  if (user === undefined || !user || !hasAccess) {
+    return null;
+  }
 
-  if (!user) return null;
-
-  if (!hasAccess) return null;
-
+  /*
+    PAGE
+  */
   return (
     <main
       className="
@@ -82,15 +133,12 @@ export default function LogementDuLacPage() {
         p-6
       "
     >
-      <div className="mb-6">
-        <BackButton />
-      </div>
 
-      <ZoneHeader
-        title="Logement du Lac"
-        subtitle="Gestion du logement du lac"
-        icon={<House size={28} />}
-      />
+<ZoneHeader
+  title="Logement du Lac"
+  icon={<House size={20} />}
+  action={<BackButton />}
+/>
 
       <section
         className="

@@ -14,10 +14,7 @@ router.post(
     const user = (req as any).user;
 
     if (user) {
-      updateSession(
-        user.username,
-        user.role
-      );
+      updateSession(user.username);
     }
 
     res.json({

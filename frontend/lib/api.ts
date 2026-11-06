@@ -87,10 +87,11 @@ export async function apiFetch(
       "Session non autorisée ou expirée";
 
 
-    if (
-      typeof window !== "undefined" &&
-      window.location.pathname !== "/login"
-    ) {
+if (
+  typeof window !== "undefined" &&
+  window.location.pathname !== "/login" &&
+  getToken() === token
+) {
 
       console.warn(
         "Unauthorized API response - resetting session."
@@ -207,10 +208,11 @@ export async function apiFetchRaw(
       error.message ||
       "Session non autorisée ou expirée";
 
-    if (
-      typeof window !== "undefined" &&
-      window.location.pathname !== "/login"
-    ) {
+if (
+  typeof window !== "undefined" &&
+  window.location.pathname !== "/login" &&
+  getToken() === token
+) {
 
       console.warn(
         "Unauthorized API response - resetting session."

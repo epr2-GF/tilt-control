@@ -1,14 +1,24 @@
+
 type AccessTimeUser = {
-  role: string;
+  id?: string;
+  username?: string;
+  capabilities?: {
+    manageUsers?: boolean;
+  };
   accessStart?: string;
   accessEnd?: string;
 };
 
 export function isUserWithinAccessTime(user: AccessTimeUser): boolean {
-  // 👑 ADMIN ALWAYS ALLOWED
-  if (user.role === "admin") return true;
+  // GhostAdmin and user-management administrators are always allowed.
+  if (
+    (user.id === "0" && user.username === "GhostAdmin") ||
+    user.capabilities?.manageUsers === true
+  ) {
+    return true;
+  }
 
-  // if no time restriction set → allow
+  // If no time restriction is set, allow access.
   if (!user.accessStart || !user.accessEnd) return true;
 
   const now = new Date();
@@ -20,5 +30,10 @@ export function isUserWithinAccessTime(user: AccessTimeUser): boolean {
   const start = sh * 60 + sm;
   const end = eh * 60 + em;
 
-  return nowMinutes >= start && nowMinutes <= end;
+  // Support both daytime and overnight access windows.
+  if (start <= end) {
+    return nowMinutes >= start && nowMinutes <= end;
+  }
+
+  return nowMinutes >= start || nowMinutes <= end;
 }

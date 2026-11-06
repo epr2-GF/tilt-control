@@ -120,9 +120,10 @@ useEffect(() => {
       }
 
       const homeDevices = data.filter(
-        (device: any) =>
-          device.zones?.includes("accueil")
-      );
+  (device: any) =>
+    Array.isArray(device.zones) &&
+    device.zones.includes("accueil")
+);
 
       setDevices(homeDevices);
 
@@ -246,76 +247,38 @@ useEffect(() => {
   /* -------------------------------------------------------------
       APPLICATION DATA & PERMISSIONS
   ------------------------------------------------------------- */
+const isGhostAdmin =
+  user.id === "0" && user.username === "GhostAdmin";
 
-  const role = user.role;
+const isAdmin =
+  user.capabilities?.manageUsers === true || isGhostAdmin;
 
-  const isAdmin =
-    role === "admin" ||
-    role === "superadmin";
+const allZones = [
+  { id: "tilt", name: "Tilt", path: "/zone/tilt" },
+  { id: "epr2", name: "EPR2", path: "/zone/epr2" },
+  { id: "restaurant", name: "Restaurant", path: "/zone/restaurant" },
+  {
+    id: "salle-des-fetes",
+    name: "Salle des Fêtes",
+    path: "/zone/salle-des-fetes",
+  },
+  { id: "pecherie", name: "Pêcherie", path: "/zone/pecherie" },
+  { id: "exterior", name: "Extérieur", path: "/zone/exterior" },
+  {
+    id: "logement-du-lac",
+    name: "Logement du Lac",
+    path: "/zone/logement-du-lac",
+  },
+  {
+    id: "logement-du-tilt",
+    name: "Logement du Tilt",
+    path: "/zone/logement-du-tilt",
+  },
+];
 
-  const isSuperAdmin =
-    role === "superadmin";
-
-
-  const allZones = [
-
-    {
-      id: "tilt",
-      name: "Tilt",
-      path: "/zone/tilt"
-    },
-
-    {
-      id: "epr2",
-      name: "EPR2",
-      path: "/zone/epr2"
-    },
-
-    {
-      id: "restaurant",
-      name: "Restaurant",
-      path: "/zone/restaurant"
-    },
-
-    {
-      id: "salle-des-fetes",
-      name: "Salle des Fêtes",
-      path: "/zone/salle-des-fetes"
-    },
-
-    {
-      id: "pecherie",
-      name: "Pêcherie",
-      path: "/zone/pecherie"
-    },
-
-    {
-      id: "exterior",
-      name: "Extérieur",
-      path: "/zone/exterior"
-    },
-
-    {
-      id: "logement-du-lac",
-      name: "Logement du Lac",
-      path: "/zone/logement-du-lac"
-    },
-
-    {
-      id: "logement-du-tilt",
-      name: "Logement du Tilt",
-      path: "/zone/logement-du-tilt"
-    },
-
-  ];
-
-
-  const zones = allZones.filter(
-    (zone) =>
-      user.permissions?.zones.includes(
-        zone.id
-      )
-  );
+const zones = allZones.filter((zone) =>
+  user.zones?.includes(zone.id)
+);
 
 
   /* -------------------------------------------------------------
@@ -356,9 +319,7 @@ useEffect(() => {
               Connecté :{" "}
 
               <span className="text-white font-semibold">
-                {user.username === "GhostAdmin"
-  ? "Superadmin"
-  : user.username}
+                {isGhostAdmin ? "Superadmin" : user.username}
               </span>
 
             </div>
@@ -517,7 +478,7 @@ useEffect(() => {
   </button>
 
   {/* AUDIT */}
-  {isSuperAdmin && (
+  {isGhostAdmin && (
     <button
       type="button"
       title="Journal"
@@ -530,7 +491,7 @@ useEffect(() => {
   )}
 
   {/* DEVICES */}
-  {isSuperAdmin && (
+  {isGhostAdmin && (
     <button
       type="button"
       title="Appareils"
@@ -543,7 +504,7 @@ useEffect(() => {
   )}
 
   {/* DEVICE LOG */}
-  {isSuperAdmin && (
+  {isGhostAdmin && (
     <button
       type="button"
       title="Journal appareils"
@@ -567,7 +528,7 @@ useEffect(() => {
   </button>
 
   {/* BACKUP & RESTORE */}
-  {isSuperAdmin && (
+  {isGhostAdmin && (
     <button
       type="button"
       title="Sauvegarde"
@@ -683,7 +644,7 @@ useEffect(() => {
   </div>
 
   <div className="mt-1">
-    Version 1.7
+    Version 2.0
 
     {gateImage && (
 

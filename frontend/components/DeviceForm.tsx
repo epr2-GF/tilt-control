@@ -32,6 +32,8 @@ type DeviceFormData = {
   statusEntity: string;
   button1Entity: string;
   button2Entity: string;
+  humidityEntity: string;
+  setpointEntity: string;
   cardType:
     | "device"
     | "binary"
@@ -41,7 +43,8 @@ type DeviceFormData = {
     | "lock"
     | "minilog"
     | "dimmer"
-    | "runScript";
+    | "runScript"
+    | "thermostat";
 
   statusTrue: string;
   statusFalse: string;
@@ -109,6 +112,8 @@ const defaultForm: DeviceFormData = {
   description: "",
   entityId: "",
   statusEntity: "",
+  humidityEntity: "",
+  setpointEntity: "",
   button1Entity: "",
   button2Entity: "",
   cardType: "binary",
@@ -128,10 +133,12 @@ export default function DeviceForm({
 }: Props) {
   const router = useRouter();
 
-  const [form, setForm] = useState<DeviceFormData>({
-    ...defaultForm,
-    ...initialData,
-  });
+const [form, setForm] = useState<DeviceFormData>({
+  ...defaultForm,
+  ...initialData,
+  humidityEntity: initialData?.humidityEntity ?? "",
+  setpointEntity: initialData?.setpointEntity ?? "",
+});
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -196,6 +203,26 @@ if (
       );
       return;
     }
+
+    if (
+  form.cardType === "thermostat" &&
+  !form.setpointEntity.trim()
+) {
+  setError(
+    "L'entité de consigne du thermostat est obligatoire."
+  );
+  return;
+}
+
+if (
+  form.cardType === "thermostat" &&
+  !form.setpointEntity.startsWith("input_number.")
+) {
+  setError(
+    "L'entité de consigne doit être une entité input_number."
+  );
+  return;
+}
 
     setSaving(true);
 
@@ -307,6 +334,10 @@ if (
 
             <option value="sensor">
               Sensor
+            </option>
+
+            <option value="thermostat">
+              Thermostat
             </option>
 
 <option value="dimmer">
@@ -545,7 +576,7 @@ if (
 
 {/* ENTITY */}
 
-{form.cardType !== "onOff" && (
+{form.cardType !== "onOff" && form.cardType !== "thermostat" && (
   <div>
     <label className="block mb-2 text-sm text-slate-300">
       Entité Home Assistant
@@ -572,6 +603,77 @@ if (
         )
       }
     />
+  </div>
+)}
+
+{/* THERMOSTAT ENTITIES */}
+
+{form.cardType === "thermostat" && (
+  <div className="
+    border
+    border-slate-700
+    rounded-xl
+    p-4
+    bg-slate-950/40
+  ">
+    <h3 className="font-semibold mb-4">
+      Configuration Thermostat
+    </h3>
+
+    <div className="grid gap-4">
+
+      <div>
+        <label className="block mb-2 text-sm text-slate-300">
+          Capteur de température actuelle
+        </label>
+
+        <input
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 font-mono text-sm"
+          placeholder="sensor.pecherie_temperature"
+          value={form.entityId}
+          onChange={(e) =>
+            updateField("entityId", e.target.value)
+          }
+        />
+      </div>
+
+      <div>
+        <label className="block mb-2 text-sm text-slate-300">
+          Capteur d'humidité
+        </label>
+
+        <input
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 font-mono text-sm"
+          placeholder="sensor.pecherie_humidity"
+          value={form.humidityEntity}
+          onChange={(e) =>
+            updateField("humidityEntity", e.target.value)
+          }
+        />
+      </div>
+
+      <div>
+        <label className="block mb-2 text-sm text-slate-300">
+          Entité de consigne (input_number)
+        </label>
+
+        <input
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 font-mono text-sm"
+          placeholder="input_number.pecherie_temperature_target"
+          value={form.setpointEntity}
+          onChange={(e) =>
+            updateField("setpointEntity", e.target.value)
+          }
+        />
+      </div>
+
+      <p className="text-xs text-slate-500">
+        La valeur 0 désactive le chauffage. Une valeur
+        comprise entre 5 et 30 °C active la régulation
+        dans Home Assistant.
+      </p>
+
+    </div>
   </div>
 )}
 
@@ -676,7 +778,8 @@ if (
 
         {/* STATUS TEXT */}
 
-        {form.cardType !== "sensor" && (
+        {form.cardType !== "sensor" &&
+        form.cardType !== "thermostat" && (
           <div className="
             border
             border-slate-700

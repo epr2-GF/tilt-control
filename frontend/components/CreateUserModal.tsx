@@ -4,7 +4,8 @@
 import { useState } from "react";
 import { X, UserPlus } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
-import type { User, Role } from "@/types/user";
+import { useAuth } from "@/context/AuthContext";
+import type { User } from "@/types/user";
 import { createUser } from "@/lib/userService";
 import { safeUUID } from "@/lib/id";
 
@@ -13,23 +14,45 @@ interface CreateUserModalProps {
   onCreated: (users: User[]) => void;
 }
 
+const availableZones = [
+  { id: "epr2", name: "EPR2" },
+  { id: "exterior", name: "Extérieur" },
+  { id: "logement-du-lac", name: "Logement du Lac" },
+  { id: "logement-du-tilt", name: "Logement du Tilt" },
+  { id: "pecherie", name: "Pêcherie" },
+  { id: "restaurant", name: "Restaurant" },
+  { id: "salle-des-fetes", name: "Salle des Fêtes" },
+  { id: "tilt", name: "Tilt" },
+];
+
 export default function CreateUserModal({
   onClose,
   onCreated,
 }: CreateUserModalProps) {
   const { showToast } = useToast();
+  const { user } = useAuth();
+
+  const isGhostAdmin =
+    user?.id === "0" && user?.username === "GhostAdmin";
 
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    username: "",
-    password: "",
-    role: "visiteur" as Role,
-    accessStart: "08:00",
-    accessEnd: "18:00",
-  });
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [zones, setZones] = useState<string[]>([]);
+  const [manageUsers, setManageUsers] = useState(false);
+  const [accessStart, setAccessStart] = useState("08:00");
+  const [accessEnd, setAccessEnd] = useState("18:00");
+
+  function toggleZone(zoneId: string) {
+    setZones((current) =>
+      current.includes(zoneId)
+        ? current.filter((zone) => zone !== zoneId)
+        : [...current, zoneId]
+    );
+  }
 
   async function handleCreate() {
-    if (!form.username.trim() || !form.password.trim()) {
+    if (!username.trim() || !password.trim()) {
       showToast("Username and password required", "error");
       return;
     }
@@ -39,12 +62,15 @@ export default function CreateUserModal({
     try {
       const newUser: User = {
         id: safeUUID(),
-        username: form.username.trim(),
-        password: form.password.trim(),
-        role: form.role,
+        username: username.trim(),
+        password: password.trim(),
+        zones,
+        capabilities: {
+          manageUsers: isGhostAdmin && manageUsers,
+        },
         disabled: false,
-        accessStart: form.accessStart,
-        accessEnd: form.accessEnd,
+        accessStart,
+        accessEnd,
       };
 
       const updated = await createUser(newUser);
@@ -70,7 +96,7 @@ export default function CreateUserModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-user-title"
-        className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
       >
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -91,16 +117,14 @@ export default function CreateUserModal({
           </button>
         </div>
 
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           <input
             autoFocus
             placeholder="Nom d'utilisateur"
             autoComplete="off"
             className="w-full rounded-lg bg-slate-800 p-3"
-            value={form.username}
-            onChange={(e) =>
-              setForm({ ...form, username: e.target.value })
-            }
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
 
           <input
@@ -108,54 +132,83 @@ export default function CreateUserModal({
             placeholder="Mot de passe"
             autoComplete="new-password"
             className="w-full rounded-lg bg-slate-800 p-3"
-            value={form.password}
-            onChange={(e) =>
-              setForm({ ...form, password: e.target.value })
-            }
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
 
-          <select
-            className="w-full rounded-lg bg-slate-800 p-3"
-            value={form.role}
-            onChange={(e) =>
-              setForm({ ...form, role: e.target.value as Role })
-            }
-          >
-            <option value="admin">admin</option>
-            <option value="visiteur">visiteur</option>
-            <option value="epr2">epr2</option>
-            <option value="restaurant">restaurant</option>
-            <option value="pecheur">pecheur</option>
-          </select>
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-slate-300">
+              Zones accessibles
+            </legend>
+
+            <p className="mb-3 text-xs text-slate-500">
+              Sélectionnez les zones que cet utilisateur pourra accéder.
+              L'accès à Accueil est partagé entre les utilisateurs autorisés.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              {availableZones.map((zone) => (
+                <label
+                  key={zone.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-800 p-3 text-sm hover:bg-slate-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={zones.includes(zone.id)}
+                    onChange={() => toggleZone(zone.id)}
+                    className="accent-blue-500"
+                  />
+                  {zone.name}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {isGhostAdmin && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-orange-500/40 bg-orange-500/10 p-3">
+              <input
+                type="checkbox"
+                checked={manageUsers}
+                onChange={(e) => setManageUsers(e.target.checked)}
+                className="mt-1 accent-orange-500"
+              />
+              <span>
+                <span className="block text-sm font-medium text-orange-300">
+                  Administrateur
+                </span>
+                <span className="block text-xs text-slate-400">
+                  Autoriser la gestion des utilisateurs et les fonctions
+                  réservées aux administrateurs.
+                </span>
+              </span>
+            </label>
+          )}
 
           <div>
             <label className="mb-2 block text-sm text-slate-400">
               Horaires d'accès
             </label>
+
             <div className="flex gap-3">
               <input
                 type="time"
                 aria-label="Début de l'accès"
                 className="w-full min-w-0 rounded-lg bg-slate-800 p-3"
-                value={form.accessStart}
-                onChange={(e) =>
-                  setForm({ ...form, accessStart: e.target.value })
-                }
+                value={accessStart}
+                onChange={(e) => setAccessStart(e.target.value)}
               />
 
               <input
                 type="time"
                 aria-label="Fin de l'accès"
                 className="w-full min-w-0 rounded-lg bg-slate-800 p-3"
-                value={form.accessEnd}
-                onChange={(e) =>
-                  setForm({ ...form, accessEnd: e.target.value })
-                }
+                value={accessEnd}
+                onChange={(e) => setAccessEnd(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="mt-3 flex justify-end gap-3">
+          <div className="mt-2 flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}

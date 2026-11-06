@@ -4,7 +4,11 @@ import {
   getConfiguredEntities,
   getDeviceStatusLogEntities,
 } from "./deviceConfigService";
-
+import { getDevices } from "./deviceService";
+import { readUsers } from "../data/usersStore";
+import {
+  getAccessibleEntityIds,
+} from "./deviceAccessService";
 import { addDeviceStatusLog } from "./deviceStatusLogService";
 
 const HA_URL = process.env.HA_URL || "";
@@ -13,8 +17,8 @@ const HA_TOKEN = process.env.HA_TOKEN || "";
 // Convert HTTPS to WSS or HTTP to WS for the Nabu Casa tunnel URL
 const WS_URL = HA_URL.replace(/^http/, "ws") + "/api/websocket";
 
-// Track active client streams (Next.js frontend listeners)
-let frontendClients = new Set<any>();
+// Each connected browser response is associated with its user ID.
+const frontendClients = new Map<any, string>();
 
 // Current state cache
 const entityStateCache: Record<string, any> = {};
@@ -101,9 +105,12 @@ export function refreshHAStates() {
   );
 
 }
-export function registerStreamClient(res: any) {
 
-  frontendClients.add(res);
+export function registerStreamClient(
+  res: any,
+  userId: string
+) {
+  frontendClients.set(res, userId);
 
   console.log(
     `✅ SSE client connected. Active clients: ${frontendClients.size}`
@@ -111,17 +118,20 @@ export function registerStreamClient(res: any) {
 
   const heartbeat = setInterval(() => {
     try {
-      res.write(": heartbeat\n\n");
+      if (!res.writableEnded && !res.destroyed) {
+        res.write(": heartbeat\n\n");
+      } else {
+        clearInterval(heartbeat);
+        frontendClients.delete(res);
+      }
     } catch {
       clearInterval(heartbeat);
+      frontendClients.delete(res);
     }
   }, 25000);
 
-
   res.on("close", () => {
-
     clearInterval(heartbeat);
-
     frontendClients.delete(res);
 
     console.log(
@@ -129,6 +139,7 @@ export function registerStreamClient(res: any) {
     );
   });
 }
+
 
 function consumeAppCommand(
   entityId: string,
@@ -174,35 +185,73 @@ function consumeAppCommand(
 }
 
 
-function broadcastToFrontend(entityId: string, newState: any) {
 
+function broadcastToFrontend(
+  entityId: string,
+  newState: any
+) {
   const data = JSON.stringify({
     entityId,
     state: newState.state,
     attributes: newState.attributes,
   });
 
-  console.log(
-    `📡 Broadcasting ${entityId}:${newState.state} to ${frontendClients.size} clients`
-  );
+  // Re-read permissions for every broadcast so that changes
+  // to zones or account status affect existing connections.
+  let currentUsers: any[];
 
+  try {
+    currentUsers = readUsers();
+  } catch (err) {
+    console.error(
+      "❌ Cannot verify user permissions; skipping SSE broadcast.",
+      err
+    );
+    return;
+  }
 
-  frontendClients.forEach((client) => {
+  const devices = getDevices();
 
+  frontendClients.forEach((userId, client) => {
     try {
+      if (client.writableEnded || client.destroyed) {
+        frontendClients.delete(client);
+        return;
+      }
+
+      const user = currentUsers.find(
+        (item: any) => String(item.id) === userId
+      );
+
+      // Disconnect deleted or disabled accounts.
+      if (!user || user.disabled === true) {
+        frontendClients.delete(client);
+        client.end();
+        return;
+      }
+
+      const allowedEntities = getAccessibleEntityIds(
+        user,
+        devices
+      );
+
+      // Never send an update for an entity outside this user's access.
+      if (!allowedEntities.has(entityId)) {
+        return;
+      }
 
       client.write(`data: ${data}\n\n`);
 
     } catch (err) {
-
-      console.error("❌ SSE write failed. Removing client.");
-
+      console.error(
+        "❌ SSE write failed. Removing client.",
+        err
+      );
       frontendClients.delete(client);
-
     }
-
   });
 }
+
 
 export function registerAppCommand(
   entityId: string,
