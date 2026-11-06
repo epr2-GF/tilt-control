@@ -439,7 +439,7 @@ const zones = allZones.filter((zone) =>
 
 
 
-<div className="grid grid-cols-6 sm:grid-cols-7 lg:grid-cols-8 gap-2">
+<div className="grid grid-cols-6 sm:grid-cols-3 lg:grid-cols-8 gap-2">
 
   {/* USERS */}
   <button
@@ -447,7 +447,7 @@ const zones = allZones.filter((zone) =>
     title="Utilisateurs"
     aria-label="Utilisateurs"
     onClick={() => router.push("/admin")}
-    className="aspect-square w-full flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 transition"
+    className="w-full min-w-0 aspect-square w-full flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 transition"
   >
     <Users size={39} />
   </button>
@@ -460,7 +460,7 @@ const zones = allZones.filter((zone) =>
     onClick={() => {
       window.location.href = "reolink://";
     }}
-    className="aspect-square w-full flex items-center justify-center rounded-xl bg-green-600 hover:bg-green-500 transition"
+    className="w-full min-w-0 aspect-square w-full flex items-center justify-center rounded-xl bg-green-600 hover:bg-green-500 transition"
   >
     <Camera size={39} />
   </button>
@@ -472,7 +472,7 @@ const zones = allZones.filter((zone) =>
     aria-label="Vérifier le portail"
     onClick={captureGateCamera}
     disabled={gateImageLoading}
-    className="aspect-square w-full flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 transition"
+    className="w-full min-w-0 aspect-square w-full flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 transition"
   >
     <Eye size={39} />
   </button>
@@ -484,7 +484,7 @@ const zones = allZones.filter((zone) =>
       title="Journal"
       aria-label="Journal"
       onClick={() => router.push("/admin/audit")}
-      className="aspect-square w-full flex items-center justify-center rounded-xl bg-purple-600 hover:bg-purple-500 transition"
+      className="w-full min-w-0 aspect-square w-full flex items-center justify-center rounded-xl bg-purple-600 hover:bg-purple-500 transition"
     >
       <ClipboardList size={39} />
     </button>
@@ -497,7 +497,7 @@ const zones = allZones.filter((zone) =>
       title="Appareils"
       aria-label="Appareils"
       onClick={() => router.push("/admin/devices")}
-      className="aspect-square w-full flex items-center justify-center rounded-xl bg-yellow-600 hover:bg-yellow-500 transition"
+      className="w-full min-w-0 aspect-square w-full flex items-center justify-center rounded-xl bg-yellow-600 hover:bg-yellow-500 transition"
     >
       <Settings size={39} />
     </button>
@@ -510,7 +510,7 @@ const zones = allZones.filter((zone) =>
       title="Journal appareils"
       aria-label="Journal appareils"
       onClick={() => router.push("/admin/device-log")}
-      className="aspect-square w-full flex items-center justify-center rounded-xl bg-cyan-600 hover:bg-cyan-500 transition"
+      className="w-full min-w-0 aspect-square w-full flex items-center justify-center rounded-xl bg-cyan-600 hover:bg-cyan-500 transition"
     >
       <ListChecks size={39} />
     </button>
@@ -522,7 +522,7 @@ const zones = allZones.filter((zone) =>
     title="Statut"
     aria-label="Statut"
     onClick={() => router.push("/admin/status")}
-    className="aspect-square w-full flex items-center justify-center rounded-xl bg-orange-600 hover:bg-orange-500 transition"
+    className="w-full min-w-0 aspect-square w-full flex items-center justify-center rounded-xl bg-orange-600 hover:bg-orange-500 transition"
   >
     <Activity size={39} />
   </button>
@@ -534,7 +534,7 @@ const zones = allZones.filter((zone) =>
       title="Sauvegarde"
       aria-label="Sauvegarde"
       onClick={() => router.push("/admin/backup")}
-      className="aspect-square w-full flex items-center justify-center rounded-xl bg-red-600 hover:bg-red-500 transition"
+      className="w-full min-w-0 aspect-square w-full flex items-center justify-center rounded-xl bg-red-600 hover:bg-red-500 transition"
     >
       <DatabaseBackup size={39} />
     </button>
@@ -546,7 +546,7 @@ const zones = allZones.filter((zone) =>
     title="Message important"
     aria-label="Message important"
     onClick={() => router.push("/admin/site-message")}
-    className="aspect-square w-full flex items-center justify-center rounded-xl bg-amber-600 hover:bg-amber-500 transition"
+    className="w-full min-w-0 aspect-square w-full flex items-center justify-center rounded-xl bg-amber-600 hover:bg-amber-500 transition"
   >
     <MessageSquare size={39} />
   </button>
