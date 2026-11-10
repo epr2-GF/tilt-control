@@ -28,6 +28,7 @@ const ALLOWED_CARD_TYPES = new Set([
   "dimmer",
   "runScript",
   "thermostat",
+  "weather",
 ]);
 
 const ENTITY_ID_PATTERN = /^[a-z0-9_]+\.[a-z0-9_]+$/i;
@@ -68,6 +69,24 @@ function validateDeviceFields(value: Partial<Device>): void {
     throw new Error("Invalid device description");
   }
 
+  // Weather station sensor entities
+  for (const field of [
+    "weatherHumidityEntity",
+    "weatherPrecipitationEntity",
+    "weatherWindSpeedEntity",
+    "weatherWindGustEntity",
+    "weatherLightEntity",
+  ] as const) {
+    const entityId = value[field];
+
+    if (
+      entityId !== undefined &&
+      (typeof entityId !== "string" ||
+        !ENTITY_ID_PATTERN.test(entityId))
+    ) {
+      throw new Error(`Invalid Home Assistant entity ID: ${field}`);
+    }
+  }
 
   if (value.entityId !== undefined) {
     const emptyOnOffEntity =
@@ -182,6 +201,29 @@ function validateCompleteDevice(device: Device): void {
     throw new Error("Device is missing required fields");
   }
 
+  if (device.cardType === "weather") {
+    const weatherEntities = [
+      device.entityId,
+      device.weatherHumidityEntity,
+      device.weatherPrecipitationEntity,
+      device.weatherWindSpeedEntity,
+      device.weatherWindGustEntity,
+      device.weatherLightEntity,
+    ];
+
+    if (
+      weatherEntities.some(
+        entity =>
+          typeof entity !== "string" ||
+          !ENTITY_ID_PATTERN.test(entity)
+      )
+    ) {
+      throw new Error(
+        "Weather station requires six valid Home Assistant entities"
+      );
+    }
+  }
+
   // Read-only cards must not have a command entity as their primary entity.
   // Their primary entity is still required to be a valid entity ID.
   if (
@@ -225,6 +267,11 @@ function pickDeviceFields(value: Partial<Device>): Partial<Device> {
     "sortOrder",
     "miniLogMode",
     "miniLogPulseSeconds",
+    "weatherHumidityEntity",
+    "weatherPrecipitationEntity",
+    "weatherWindSpeedEntity",
+    "weatherWindGustEntity",
+    "weatherLightEntity",
   ];
 
   const result: Partial<Device> = {};

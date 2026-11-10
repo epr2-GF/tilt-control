@@ -644,7 +644,7 @@ const zones = allZones.filter((zone) =>
   </div>
 
   <div className="mt-1">
-    Version 2.0
+    Version 2.1
 
     {gateImage && (
 

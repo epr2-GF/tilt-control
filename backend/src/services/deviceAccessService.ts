@@ -77,14 +77,21 @@ export function getAccessibleEntityIds(
       continue;
     }
 
-for (const entityId of [
-  device.entityId,
-  device.statusEntity,
-  device.button1Entity,
-  device.button2Entity,
-  device.humidityEntity,
-  device.setpointEntity,
-]) {
+    for (const entityId of [
+      device.entityId,
+      device.statusEntity,
+      device.button1Entity,
+      device.button2Entity,
+      device.humidityEntity,
+      device.setpointEntity,
+
+      // Weather station sensors
+      device.weatherHumidityEntity,
+      device.weatherPrecipitationEntity,
+      device.weatherWindSpeedEntity,
+      device.weatherWindGustEntity,
+      device.weatherLightEntity,
+    ]) {
       if (typeof entityId === "string" && entityId.length > 0) {
         entities.add(entityId);
       }

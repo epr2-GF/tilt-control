@@ -17,6 +17,13 @@ export function getConfiguredEntities(): string[] {
     device.button2Entity,
     device.humidityEntity,
     device.setpointEntity,
+
+    // Weather station sensors
+    device.weatherHumidityEntity,
+    device.weatherPrecipitationEntity,
+    device.weatherWindSpeedEntity,
+    device.weatherWindGustEntity,
+    device.weatherLightEntity,
   ]);
 
   return [
@@ -35,7 +42,9 @@ export function getDeviceStatusLogEntities(): string[] {
 
   const entities = devices
     .filter(
-      (device: any) => device.cardType !== "sensor"
+      (device: any) =>
+        device.cardType !== "sensor" &&
+        device.cardType !== "weather"
     )
     .flatMap((device: any) => [
       device.entityId,

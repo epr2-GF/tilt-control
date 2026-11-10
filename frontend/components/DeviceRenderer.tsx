@@ -10,6 +10,7 @@ import MiniLogCard from "@/components/MiniLogCard";
 import DimmerCard from "@/components/DimmerCard";
 import RunScriptCard from "@/components/RunScriptCard";
 import ThermostatCard from "@/components/ThermostatCard";
+import WeatherStationCard from "@/components/WeatherStationCard";
 
 import {
   Camera,
@@ -237,6 +238,13 @@ case "dimmer":
         />
       );
     }
+
+case "weather":
+  return (
+    <WeatherStationCard
+      device={device}
+    />
+  );
 
     case "device":
       return (

@@ -20,6 +20,7 @@ import {
   Warehouse,
   ShieldCheck,
   ShieldOff,
+  CloudSun,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -44,7 +45,8 @@ type DeviceFormData = {
     | "minilog"
     | "dimmer"
     | "runScript"
-    | "thermostat";
+    | "thermostat"
+    | "weather";
 
   statusTrue: string;
   statusFalse: string;
@@ -53,6 +55,11 @@ type DeviceFormData = {
   enabled: boolean;
   miniLogMode: "normal" | "pulse";
   miniLogPulseSeconds: number;
+  weatherHumidityEntity: string;
+  weatherPrecipitationEntity: string;
+  weatherWindSpeedEntity: string;
+  weatherWindGustEntity: string;
+  weatherLightEntity: string;
 };
 
 type Props = {
@@ -105,6 +112,11 @@ const iconOptions = [
     label: "Alarme désarmée",
     icon: ShieldOff,
   },
+  {
+  value: "weather",
+  label: "Station météo",
+  icon: CloudSun,
+},
 ];
 
 const defaultForm: DeviceFormData = {
@@ -124,6 +136,11 @@ const defaultForm: DeviceFormData = {
   enabled: true,
   miniLogMode: "normal",
   miniLogPulseSeconds: 2,
+  weatherHumidityEntity: "",
+  weatherPrecipitationEntity: "",
+  weatherWindSpeedEntity: "",
+  weatherWindGustEntity: "",
+  weatherLightEntity: "",
 };
 
 export default function DeviceForm({
@@ -138,6 +155,11 @@ const [form, setForm] = useState<DeviceFormData>({
   ...initialData,
   humidityEntity: initialData?.humidityEntity ?? "",
   setpointEntity: initialData?.setpointEntity ?? "",
+  weatherHumidityEntity: initialData?.weatherHumidityEntity ?? "",
+  weatherPrecipitationEntity: initialData?.weatherPrecipitationEntity ?? "",
+  weatherWindSpeedEntity: initialData?.weatherWindSpeedEntity ?? "",
+  weatherWindGustEntity: initialData?.weatherWindGustEntity ?? "",
+  weatherLightEntity: initialData?.weatherLightEntity ?? "",
 });
 
   const [saving, setSaving] = useState(false);
@@ -222,6 +244,24 @@ if (
     "L'entité de consigne doit être une entité input_number."
   );
   return;
+}
+
+if (form.cardType === "weather") {
+  const weatherEntities = [
+    form.entityId,
+    form.weatherHumidityEntity,
+    form.weatherPrecipitationEntity,
+    form.weatherWindSpeedEntity,
+    form.weatherWindGustEntity,
+    form.weatherLightEntity,
+  ];
+
+  if (weatherEntities.some((entity) => !entity.trim())) {
+    setError(
+      "Les six entités Home Assistant sont obligatoires pour la station météo."
+    );
+    return;
+  }
 }
 
     setSaving(true);
@@ -338,6 +378,10 @@ if (
 
             <option value="thermostat">
               Thermostat
+            </option>
+
+            <option value="weather">
+               Weather Station
             </option>
 
 <option value="dimmer">
@@ -677,6 +721,69 @@ if (
   </div>
 )}
 
+{/* WEATHER STATION ENTITIES */}
+
+{form.cardType === "weather" && (
+  <div className="border border-slate-700 rounded-xl p-4 bg-slate-950/40">
+    <h3 className="font-semibold mb-4">
+      Configuration Station Météo
+    </h3>
+
+    <div className="grid gap-4">
+      {[
+        {
+          field: "entityId",
+          label: "Température",
+          placeholder: "sensor.tilt_meteo_tilt_temperature",
+        },
+        {
+          field: "weatherHumidityEntity",
+          label: "Humidité",
+          placeholder: "sensor.tilt_meteo_tilt_humidite",
+        },
+        {
+          field: "weatherPrecipitationEntity",
+          label: "Précipitations",
+          placeholder: "sensor.tilt_meteo_tilt_precipitation",
+        },
+        {
+          field: "weatherWindSpeedEntity",
+          label: "Vitesse du vent",
+          placeholder: "sensor.tilt_meteo_tilt_vitesse",
+        },
+        {
+          field: "weatherWindGustEntity",
+          label: "Rafales",
+          placeholder: "sensor.tilt_meteo_tilt_vitesse_2",
+        },
+        {
+          field: "weatherLightEntity",
+          label: "Luminosité",
+          placeholder: "sensor.tilt_meteo_tilt_eclairement",
+        },
+      ].map((item) => (
+        <div key={item.field}>
+          <label className="block mb-2 text-sm text-slate-300">
+            {item.label}
+          </label>
+
+          <input
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 font-mono text-sm"
+            placeholder={item.placeholder}
+            value={form[item.field as keyof DeviceFormData] as string}
+            onChange={(e) =>
+              updateField(
+                item.field as keyof DeviceFormData,
+                e.target.value as never
+              )
+            }
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
         {/* STATUS ENTITY */}
 {(
   form.cardType === "device" ||
@@ -779,7 +886,8 @@ if (
         {/* STATUS TEXT */}
 
         {form.cardType !== "sensor" &&
-        form.cardType !== "thermostat" && (
+        form.cardType !== "thermostat" &&
+        form.cardType !== "weather" && (
           <div className="
             border
             border-slate-700

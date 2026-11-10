@@ -38,7 +38,8 @@ cardType:
   | "minilog"
   | "dimmer"
   | "runScript"
-  | "thermostat";
+  | "thermostat"
+  | "weather";
 
   statusTrue?: string;
 
@@ -55,5 +56,11 @@ cardType:
   miniLogMode?: "normal" | "pulse";
 
   miniLogPulseSeconds?: number;
+
+  weatherHumidityEntity?: string;
+weatherPrecipitationEntity?: string;
+weatherWindSpeedEntity?: string;
+weatherWindGustEntity?: string;
+weatherLightEntity?: string;
 
 }
