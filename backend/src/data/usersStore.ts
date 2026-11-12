@@ -4,6 +4,7 @@ import path from "path";
 
 export type UserCapabilities = {
   manageUsers?: boolean;
+  receiveNotifications?: boolean;
 };
 
 export type User = {
@@ -144,14 +145,21 @@ if (isGhostAdmin(user)) {
       user.zones = LEGACY_ZONES[user.role] ?? [];
     }
 
-    if (
-      !user.capabilities ||
-      typeof user.capabilities !== "object"
-    ) {
-      user.capabilities = {
-        manageUsers: user.role === "admin",
-      };
-    }
+if (
+  !user.capabilities ||
+  typeof user.capabilities !== "object" ||
+  Array.isArray(user.capabilities)
+) {
+  user.capabilities = {
+    manageUsers: user.role === "admin",
+    receiveNotifications: false,
+  };
+}
+
+// Existing users do not automatically receive notifications.
+if (typeof user.capabilities.receiveNotifications !== "boolean") {
+  user.capabilities.receiveNotifications = false;
+}
 
     /*
      * Preserve the existing rule that only GhostAdmin can grant

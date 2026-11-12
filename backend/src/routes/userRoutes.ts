@@ -1,4 +1,3 @@
-
 import express from "express";
 import { readUsers, writeUsers, type User } from "../data/usersStore";
 import { authMiddleware } from "../middleware/authMiddleware";
@@ -21,7 +20,10 @@ type RequestUser = {
   id: string;
   username: string;
   zones: string[];
-  capabilities?: { manageUsers?: boolean };
+  capabilities?: {
+    manageUsers?: boolean;
+    receiveNotifications?: boolean;
+  };
 };
 
 function isGhostAdmin(user: RequestUser) {
@@ -173,26 +175,38 @@ router.post("/", (req, res) => {
     return res.status(409).json({ message: "Username already exists" });
   }
 
-const requestedCapabilities = body.capabilities ?? {};
+  const requestedCapabilities = body.capabilities ?? {};
 
-if (
-  !requestedCapabilities ||
-  typeof requestedCapabilities !== "object" ||
-  Array.isArray(requestedCapabilities) ||
-  Object.keys(requestedCapabilities).some(
-    key => key !== "manageUsers"
-  ) ||
-  (
-    requestedCapabilities.manageUsers !== undefined &&
-    typeof requestedCapabilities.manageUsers !== "boolean"
-  )
-) {
-  return res.status(400).json({
-    message: "Invalid capabilities",
-  });
-}
+  if (
+    !requestedCapabilities ||
+    typeof requestedCapabilities !== "object" ||
+    Array.isArray(requestedCapabilities) ||
+    Object.keys(requestedCapabilities).some(
+      key => !["manageUsers", "receiveNotifications"].includes(key)
+    ) ||
+    (
+      requestedCapabilities.manageUsers !== undefined &&
+      typeof requestedCapabilities.manageUsers !== "boolean"
+    ) ||
+    (
+      requestedCapabilities.receiveNotifications !== undefined &&
+      typeof requestedCapabilities.receiveNotifications !== "boolean"
+    )
+  ) {
+    return res.status(400).json({
+      message: "Invalid capabilities",
+    });
+  }
 
-const wantsAdmin = requestedCapabilities.manageUsers === true;
+  const wantsAdmin = requestedCapabilities.manageUsers === true;
+  const wantsNotifications =
+    requestedCapabilities.receiveNotifications === true;
+
+  if (wantsNotifications && !ghost) {
+    return res.status(403).json({
+      message: "Only GhostAdmin can grant notification permission",
+    });
+  }
 
 
   if (wantsAdmin && !ghost) {
@@ -224,7 +238,10 @@ const wantsAdmin = requestedCapabilities.manageUsers === true;
     username,
     password: body.password,
     zones: [...new Set(requestedZones as string[])],
-    capabilities: { manageUsers: wantsAdmin },
+    capabilities: {
+      manageUsers: wantsAdmin,
+      receiveNotifications: wantsNotifications,
+    },
     disabled: body.disabled === true,
     accessStart,
     accessEnd,
@@ -329,49 +346,91 @@ router.put("/:id", (req, res) => {
   }
  
   if (body.capabilities !== undefined) {
+    const requested = body.capabilities;
+
     if (
-      !body.capabilities ||
-      typeof body.capabilities !== "object" ||
-      Array.isArray(body.capabilities) ||
-      Object.keys(body.capabilities).some(key => key !== "manageUsers") ||
-      typeof body.capabilities.manageUsers !== "boolean"
+      !requested ||
+      typeof requested !== "object" ||
+      Array.isArray(requested) ||
+      Object.keys(requested).some(
+        key => !["manageUsers", "receiveNotifications"].includes(key)
+      ) ||
+      (
+        requested.manageUsers !== undefined &&
+        typeof requested.manageUsers !== "boolean"
+      ) ||
+      (
+        requested.receiveNotifications !== undefined &&
+        typeof requested.receiveNotifications !== "boolean"
+      ) ||
+      Object.keys(requested).length === 0
     ) {
       return res.status(400).json({ message: "Invalid capabilities" });
     }
 
-    const wasAdmin = isAdministrator(updated);
-    const willBeAdmin = body.capabilities.manageUsers;
-
-    // Only the protected system administrator can change administrator access.
-    if (!ghost && wasAdmin !== willBeAdmin) {
+    // Only GhostAdmin can change notification permissions.
+    if (
+      requested.receiveNotifications !== undefined &&
+      !ghost
+    ) {
       return res.status(403).json({
-        message: "You do not have permission to change administrator access",
+        message: "Only GhostAdmin can change notification permissions",
       });
     }
 
-    // Prevent removing the last normal administrator.
-    if (wasAdmin && !willBeAdmin) {
-      const normalAdminCount = users.filter(
-        user =>
-          user.id !== "0" &&
-          user.username !== "GhostAdmin" &&
-          isAdministrator(user)
-      ).length;
+    if (requested.manageUsers !== undefined) {
+      const wasAdmin = isAdministrator(updated);
+      const willBeAdmin = requested.manageUsers;
 
-      if (normalAdminCount <= 1) {
+      if (!ghost && wasAdmin !== willBeAdmin) {
         return res.status(403).json({
-          message: "Cannot remove administrator access from the last normal administrator",
+          message: "You do not have permission to change administrator access",
         });
       }
+
+      if (wasAdmin && !willBeAdmin) {
+        const normalAdminCount = users.filter(
+          user =>
+            user.id !== "0" &&
+            user.username !== "GhostAdmin" &&
+            isAdministrator(user)
+        ).length;
+
+        if (normalAdminCount <= 1) {
+          return res.status(403).json({
+            message: "Cannot remove administrator access from the last normal administrator",
+          });
+        }
+      }
+
+      if (wasAdmin !== willBeAdmin) {
+        changes.manageUsers = { from: wasAdmin, to: willBeAdmin };
+      }
+
+      updated.capabilities = {
+        ...updated.capabilities,
+        manageUsers: willBeAdmin,
+      };
     }
 
-    if (wasAdmin !== willBeAdmin) {
-      changes.manageUsers = { from: wasAdmin, to: willBeAdmin };
-    }
+    if (requested.receiveNotifications !== undefined) {
+      const previous =
+        updated.capabilities.receiveNotifications === true;
+      const next = requested.receiveNotifications;
 
-    updated.capabilities = { manageUsers: willBeAdmin };
+      if (previous !== next) {
+        changes.receiveNotifications = {
+          from: previous,
+          to: next,
+        };
+      }
+
+      updated.capabilities = {
+        ...updated.capabilities,
+        receiveNotifications: next,
+      };
+    }
   }
-
   if (body.disabled !== undefined) {
     if (typeof body.disabled !== "boolean") {
       return res.status(400).json({ message: "Invalid disabled value" });

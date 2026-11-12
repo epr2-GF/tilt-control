@@ -1,6 +1,7 @@
 
 export type UserCapabilities = {
   manageUsers?: boolean;
+  receiveNotifications?: boolean;
 };
 
 export type User = {

@@ -291,6 +291,9 @@ if (found.id === "0" && found.username === "GhostAdmin") {
   const isGhostAdmin =
     currentUser.id === "0" && currentUser.username === "GhostAdmin";
 
+    const targetIsGhostAdmin =
+  targetUser.id === "0" && targetUser.username === "GhostAdmin";
+
   const targetIsAdmin =
     targetUser.capabilities?.manageUsers === true ||
     (targetUser.id === "0" && targetUser.username === "GhostAdmin");
@@ -492,40 +495,92 @@ if (found.id === "0" && found.username === "GhostAdmin") {
           </div>
         </section>
 
-        <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
-          <h2 className="mb-4 text-lg font-semibold">Capacités</h2>
+       
+<section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
+  <h2 className="mb-4 text-lg font-semibold">Capacités</h2>
 
-          {isGhostAdmin ? (
-            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-orange-500/40 bg-orange-500/10 p-3">
-              <input
-                type="checkbox"
-                checked={form.capabilities?.manageUsers === true}
-                disabled={targetUser.id === "0"}
-                onChange={(e) =>
-                  updateForm("capabilities", {
-                    ...form.capabilities,
-                    manageUsers: e.target.checked,
-                  })
-                }
-                className="mt-1 accent-orange-500"
-              />
-              <span>
-                <span className="block font-medium text-orange-300">
-                  Gestion des utilisateurs
-                </span>
-                <span className="block text-sm text-slate-400">
-                  Autorise l'accès aux fonctions d'administration des utilisateurs.
-                </span>
-              </span>
-            </label>
-          ) : (
-            <p className="text-sm text-slate-400">
-              {form.capabilities?.manageUsers
-                ? "Administrateur"
-                : "Utilisateur standard"}
-            </p>
-          )}
-        </section>
+  {isGhostAdmin ? (
+    <div className="space-y-3">
+      <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-orange-500/40 bg-orange-500/10 p-3">
+        <input
+          type="checkbox"
+          checked={form.capabilities?.manageUsers === true}
+          disabled={targetIsGhostAdmin}
+          onChange={(e) =>
+            updateForm("capabilities", {
+              ...form.capabilities,
+              manageUsers: e.target.checked,
+            })
+          }
+          className="mt-1 accent-orange-500"
+        />
+        <span>
+          <span className="block font-medium text-orange-300">
+            Gestion des utilisateurs
+          </span>
+          <span className="block text-sm text-slate-400">
+            Autorise l'accès aux fonctions d'administration des utilisateurs.
+          </span>
+        </span>
+      </label>
+
+      {targetIsGhostAdmin ? (
+        <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-3">
+          <span className="block font-medium text-green-300">
+            Notifications toujours activées
+          </span>
+          <span className="block text-sm text-slate-400">
+            GhostAdmin reçoit systématiquement toutes les notifications.
+          </span>
+        </div>
+      ) : (
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
+          <input
+            type="checkbox"
+            checked={form.capabilities?.receiveNotifications === true}
+            onChange={(e) =>
+              updateForm("capabilities", {
+                ...form.capabilities,
+                receiveNotifications: e.target.checked,
+              })
+            }
+            className="mt-1 accent-blue-500"
+          />
+          <span>
+            <span className="block font-medium text-blue-300">
+              Recevoir les notifications
+            </span>
+            <span className="block text-sm text-slate-400">
+              Autorise la réception des notifications envoyées par Tilt44.
+            </span>
+          </span>
+        </label>
+      )}
+    </div>
+  ) : (
+    <div className="space-y-3">
+      <p className="text-sm text-slate-400">
+        {form.capabilities?.manageUsers
+          ? "Administrateur"
+          : "Utilisateur standard"}
+      </p>
+
+      <div className="rounded-lg bg-slate-800 p-3">
+        <span className="block font-medium">
+          Notifications :{" "}
+          {targetIsGhostAdmin ||
+          form.capabilities?.receiveNotifications === true
+            ? "Activées"
+            : "Désactivées"}
+        </span>
+        <span className="block text-sm text-slate-400">
+          Vous n'êtes pas autorisé à modifier cette autorisation.
+        </span>
+      </div>
+    </div>
+  )}
+</section>
+
 
         <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
           <h2 className="mb-4 text-lg font-semibold">Actions du compte</h2>

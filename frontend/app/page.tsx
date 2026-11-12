@@ -22,6 +22,7 @@ import {
   apiFetchRaw,
 } from "@/lib/api";
 import DeviceRenderer from "@/components/DeviceRenderer";
+import NotificationBell from "@/components/NotificationBell";
 
 
 export default function HomePage() {
@@ -311,6 +312,9 @@ const zones = allZones.filter((zone) =>
 
         <div className="flex items-center gap-4 mt-4 md:mt-0">
 
+{(isGhostAdmin || user.capabilities?.receiveNotifications === true) && (
+  <NotificationBell />
+)}
 
           <div className="flex flex-col text-sm text-slate-300">
 
@@ -644,7 +648,7 @@ const zones = allZones.filter((zone) =>
   </div>
 
   <div className="mt-1">
-    Version 2.1
+    Version 2.2
 
     {gateImage && (
 

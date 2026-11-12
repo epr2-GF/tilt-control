@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from "react";
@@ -10,6 +11,20 @@ export default function AppInit({
 }) {
   useEffect(() => {
     initUsers();
+
+    if (!("serviceWorker" in navigator)) {
+      console.warn("Service workers are not supported.");
+      return;
+    }
+
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then((registration) => {
+        console.log("Tilt44 service worker registered:", registration.scope);
+      })
+      .catch((error) => {
+        console.error("Tilt44 service worker registration failed:", error);
+      });
   }, []);
 
   return <>{children}</>;

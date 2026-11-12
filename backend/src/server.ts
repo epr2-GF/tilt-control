@@ -16,7 +16,7 @@ import deviceAdminRoutes from "./routes/deviceAdminRoutes";
 import { readUsers } from "./data/usersStore";
 import backupRoutes from "./routes/backupRoutes";
 import fs from "fs";
-import path from "path";
+import notificationsRoutes from "./routes/notifications";
 import { writeAudit } from "./services/auditService";
 import cameraRoutes from "./routes/cameraRoutes";
 
@@ -136,6 +136,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/admin/backup", backupRoutes);
 app.use("/api/status", statusRoutes);
 app.use("/api/session", authMiddleware, sessionRoutes);
+app.use("/api/notifications", notificationsRoutes);
 app.use(
   "/api/camera",
   cameraRoutes
