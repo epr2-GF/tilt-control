@@ -23,7 +23,7 @@ import {
 } from "@/lib/api";
 import DeviceRenderer from "@/components/DeviceRenderer";
 import NotificationBell from "@/components/NotificationBell";
-
+import SecurityModeButton from "@/components/SecurityModeButton";
 
 export default function HomePage() {
   const router = useRouter();
@@ -444,6 +444,11 @@ const zones = allZones.filter((zone) =>
 
 
 <div className="grid grid-cols-6 sm:grid-cols-3 lg:grid-cols-8 gap-2">
+
+    {/* SECURITY MODE */}
+  <div className="w-full min-w-0 aspect-square flex items-center justify-center rounded-xl bg-slate-800">
+    <SecurityModeButton />
+  </div>
 
   {/* USERS */}
   <button

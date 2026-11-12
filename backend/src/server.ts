@@ -19,6 +19,7 @@ import fs from "fs";
 import notificationsRoutes from "./routes/notifications";
 import { writeAudit } from "./services/auditService";
 import cameraRoutes from "./routes/cameraRoutes";
+import securityRoutes from "./routes/securityRoutes";
 
 const app = express();
 
@@ -137,6 +138,7 @@ app.use("/api/admin/backup", backupRoutes);
 app.use("/api/status", statusRoutes);
 app.use("/api/session", authMiddleware, sessionRoutes);
 app.use("/api/notifications", notificationsRoutes);
+app.use("/api/security", authMiddleware, securityRoutes);
 app.use(
   "/api/camera",
   cameraRoutes
