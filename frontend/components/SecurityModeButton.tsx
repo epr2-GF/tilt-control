@@ -49,14 +49,11 @@ export default function SecurityModeButton() {
     }
   }
 
-  if (loading) {
-    return <span className="text-xs text-amber-400">Sécurité...</span>;
-  }
   return (
     <button
       type="button"
       onClick={toggleSecurity}
-      disabled={busy}
+      disabled={busy || loading}
       title={
         enabled
           ? "Désactiver le mode sécurité"
@@ -67,11 +64,13 @@ export default function SecurityModeButton() {
           ? "Désactiver le mode sécurité"
           : "Activer le mode sécurité"
       }
-      className={`w-full min-w-0 aspect-square flex items-center justify-center rounded-xl transition disabled:opacity-50 ${
-        enabled
-          ? "bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse"
-          : "bg-slate-800 hover:bg-slate-700 text-slate-400"
-      }`}
+className={`w-full min-w-0 aspect-square flex items-center justify-center rounded-xl transition disabled:opacity-50 ${
+  loading
+    ? "bg-slate-800 text-slate-500"
+    : enabled
+      ? "bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse"
+      : "bg-slate-800 hover:bg-slate-700 text-slate-400"
+}`}
     >
       {enabled ? (
         <ShieldCheck size={39} strokeWidth={2.5} />
