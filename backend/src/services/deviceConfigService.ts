@@ -56,11 +56,12 @@ export function getDeviceStatusLogEntities(): string[] {
     ]);
 
   return [
-    ...new Set(
-      entities.filter(
+    ...new Set([
+      ...entities.filter(
         (entity): entity is string =>
           typeof entity === "string" && entity.length > 0
-      )
-    ),
+      ),
+      "input_boolean.security_mode",
+    ]),
   ];
 }

@@ -98,5 +98,13 @@ export function getAccessibleEntityIds(
     }
   }
 
+  // Security mode is available only to administrators.
+  if (
+    user.capabilities?.manageUsers === true ||
+    isGhostAdmin(user)
+  ) {
+    entities.add("input_boolean.security_mode");
+  }
+
   return entities;
 }
