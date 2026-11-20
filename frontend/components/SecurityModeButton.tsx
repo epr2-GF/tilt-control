@@ -1,39 +1,30 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ShieldCheck, Shield } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { useDevices } from "@/context/DeviceContext";
 
 export default function SecurityModeButton() {
-  const [enabled, setEnabled] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { states, refreshStates } = useDevices();
   const [busy, setBusy] = useState(false);
 
-  async function loadState() {
-    try {
-      const data = await apiFetch("/security/state");
-      setEnabled(data.state === "on");
-    } catch (error) {
-      console.error("Unable to load security mode:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadState();
-  }, []);
+  const securityState = states["input_boolean.security_mode"];
+  const enabled = securityState?.state === "on";
+  const loading = !securityState;
 
   async function toggleSecurity() {
     setBusy(true);
 
     try {
-      const data = await apiFetch("/security/toggle", {
+      await apiFetch("/security/toggle", {
         method: "POST",
       });
 
-      setEnabled(data.state === "on");
+      // Refresh local state after the command.
+      await refreshStates();
+
     } catch (error) {
       console.error("Security mode error:", error);
 
@@ -43,7 +34,7 @@ export default function SecurityModeButton() {
           : "Impossible de modifier le mode sécurité."
       );
 
-      await loadState();
+      await refreshStates();
     } finally {
       setBusy(false);
     }
@@ -64,13 +55,13 @@ export default function SecurityModeButton() {
           ? "Désactiver le mode sécurité"
           : "Activer le mode sécurité"
       }
-className={`w-full min-w-0 aspect-square flex items-center justify-center rounded-xl transition disabled:opacity-50 ${
-  loading
-    ? "bg-slate-800 text-slate-500"
-    : enabled
-      ? "bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse"
-      : "bg-slate-800 hover:bg-slate-700 text-slate-400"
-}`}
+      className={`w-full min-w-0 aspect-square flex items-center justify-center rounded-xl transition disabled:opacity-50 ${
+        loading
+          ? "bg-slate-800 text-slate-500"
+          : enabled
+            ? "bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse"
+            : "bg-slate-800 hover:bg-slate-700 text-slate-400"
+      }`}
     >
       {enabled ? (
         <ShieldCheck size={39} strokeWidth={2.5} />
