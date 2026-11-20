@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -18,7 +19,6 @@ const API_URL =
 
 type DeviceValue = {
   state: string;
-
   attributes?: {
     current_position?: number;
     [key: string]: any;
@@ -45,199 +45,189 @@ export function DeviceProvider({
   children: ReactNode;
 }) {
   const { token } = useAuth();
+
+  // DIAGNOSTIC 1: Provider rendering
+  console.log("[DeviceProvider] Render", {
+    tokenAvailable: !!token,
+  });
+
   const tokenRef = useRef<string | null>(token);
 
-// Keep the latest token available to asynchronous requests.
-tokenRef.current = token;
+  tokenRef.current = token;
 
   const [states, setStates] =
     useState<DeviceStates>({});
 
-  // Single global SSE connection
   const eventSourceRef =
     useRef<EventSource | null>(null);
 
   /*
-    -------------------------------------------------------------
     REFRESH HOME ASSISTANT STATES
-    -------------------------------------------------------------
   */
 
-const refreshStates = useCallback(async () => {
+  const refreshStates = useCallback(async () => {
+    if (!token) return;
 
-  if (!token) {
-    return;
-  }
+    const requestToken = token;
 
-  const requestToken = token;
-
-  try {
-    const data = await apiFetch(
-      "/devices/state",
-      {},
-      requestToken
-    );
-
-    // Ignore responses from a previous session.
-    if (tokenRef.current !== requestToken) {
-      return;
-    }
-
-    if (!data || typeof data !== "object") {
-      console.error(
-        "Invalid device state response",
-        data
-      );
-
-      return;
-    }
-
-    setStates(data);
-
-  } catch (error) {
-
-    if (tokenRef.current === requestToken) {
-      console.error(
-        "Failed refreshing device states",
-        error
-      );
-    }
-
-  }
-
-}, [token]);
-
-  /*
-    -------------------------------------------------------------
-    GLOBAL SSE CONNECTION
-    -------------------------------------------------------------
-  */
-
-
-useEffect(() => {
-
-  // Clear all previous device states whenever
-  // the authenticated session changes.
-  setStates({});
-
-  // No authenticated token: do not connect.
-  if (!token) {
-    return;
-  }
-
-  let cancelled = false;
-
-  // Prevent duplicate SSE connections.
-  if (eventSourceRef.current) {
-    eventSourceRef.current.close();
-    eventSourceRef.current = null;
-  }
-
-  /*
-    INITIAL STATE LOAD
-  */
-
-  const loadStates = async () => {
     try {
       const data = await apiFetch(
-  "/devices/state",
-  {},
-  token
-);
+        "/devices/state",
+        {},
+        requestToken
+      );
 
-      // Ignore responses belonging to an old session.
-      if (cancelled) return;
+      if (tokenRef.current !== requestToken) return;
 
       if (!data || typeof data !== "object") {
-        console.error("Invalid device state response", data);
+        console.error(
+          "Invalid device state response",
+          data
+        );
         return;
       }
 
       setStates(data);
 
     } catch (error) {
-      if (!cancelled) {
-        console.error("Failed refreshing device states", error);
+      if (tokenRef.current === requestToken) {
+        console.error(
+          "Failed refreshing device states",
+          error
+        );
       }
     }
-  };
-
-  loadStates();
+  }, [token]);
 
   /*
-    CREATE GLOBAL SSE CONNECTION
+    GLOBAL SSE CONNECTION
   */
 
-  const streamUrl =
-    `${API_URL}/devices/stream?token=${encodeURIComponent(token)}`;
+  useEffect(() => {
 
-  const eventSource = new EventSource(streamUrl);
+    // DIAGNOSTIC 2: Effect execution
+    console.log("[DeviceProvider] Effect running", {
+      tokenAvailable: !!token,
+    });
 
-  eventSourceRef.current = eventSource;
+    setStates({});
 
-  /*
-    RECEIVE LIVE STATE UPDATES
-  */
-
-  eventSource.onmessage = (event) => {
-    if (cancelled) return;
-
-    try {
-      const update = JSON.parse(event.data);
-
-      const entityId =
-        update.entityId || update.entity_id;
-
-      if (!entityId) return;
-
-      setStates(previous => ({
-        ...previous,
-
-        [entityId]: {
-          ...previous[entityId],
-
-          state: update.state,
-
-          attributes:
-            update.attributes ??
-            previous[entityId]?.attributes,
-        },
-      }));
-
-    } catch (error) {
-      console.error("SSE parse error", error);
+    if (!token) {
+      console.log("[DeviceProvider] No token - skipping connection");
+      return;
     }
-  };
 
-  /*
-    SSE ERROR
-  */
+    let cancelled = false;
 
-  eventSource.onerror = () => {
-    // EventSource automatically reconnects.
-  };
-
-  /*
-    CLEANUP
-  */
-
-  return () => {
-    cancelled = true;
-
-    eventSource.close();
-
-    if (eventSourceRef.current === eventSource) {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
-  };
 
-}, [token]);
+    /*
+      INITIAL STATE LOAD
+    */
 
-  /*
-    -------------------------------------------------------------
-    PROVIDER
-    -------------------------------------------------------------
-  */
+    const loadStates = async () => {
+      try {
+        console.log("[DeviceProvider] Loading initial states");
+
+        const data = await apiFetch(
+          "/devices/state",
+          {},
+          token
+        );
+
+        if (cancelled) return;
+
+        if (!data || typeof data !== "object") {
+          console.error(
+            "Invalid device state response",
+            data
+          );
+          return;
+        }
+
+        setStates(data);
+
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            "Failed refreshing device states",
+            error
+          );
+        }
+      }
+    };
+
+    loadStates();
+
+    /*
+      CREATE GLOBAL SSE CONNECTION
+    */
+
+    const streamUrl =
+      `${API_URL}/devices/stream?token=${encodeURIComponent(token)}`;
+
+    // DIAGNOSTIC 3: EventSource creation
+    console.log("[DeviceProvider] Creating SSE connection", streamUrl);
+
+    const eventSource = new EventSource(streamUrl);
+
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      console.log("[DeviceProvider] SSE connected");
+    };
+
+    eventSource.onmessage = (event) => {
+      if (cancelled) return;
+
+      try {
+        const update = JSON.parse(event.data);
+
+        const entityId =
+          update.entityId || update.entity_id;
+
+        if (!entityId) return;
+
+        setStates(previous => ({
+          ...previous,
+          [entityId]: {
+            ...previous[entityId],
+            state: update.state,
+            attributes:
+              update.attributes ??
+              previous[entityId]?.attributes,
+          },
+        }));
+
+      } catch (error) {
+        console.error("SSE parse error", error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("[DeviceProvider] SSE error", error);
+    };
+
+    /*
+      CLEANUP
+    */
+
+    return () => {
+      console.log("[DeviceProvider] Closing SSE connection");
+
+      cancelled = true;
+
+      eventSource.close();
+
+      if (eventSourceRef.current === eventSource) {
+        eventSourceRef.current = null;
+      }
+    };
+
+  }, [token]);
 
   return (
     <DeviceContext.Provider
@@ -251,15 +241,8 @@ useEffect(() => {
   );
 }
 
-/*
-  ---------------------------------------------------------------
-  USE DEVICES HOOK
-  ---------------------------------------------------------------
-*/
-
 export function useDevices() {
-  const context =
-    useContext(DeviceContext);
+  const context = useContext(DeviceContext);
 
   if (!context) {
     throw new Error(
