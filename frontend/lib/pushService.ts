@@ -47,13 +47,22 @@ export async function enablePushNotifications(): Promise<void> {
     );
   }
 
-  const permission = await Notification.requestPermission();
+const currentPermission = Notification.permission;
 
-  if (permission !== "granted") {
-    throw new Error(
-      "L'autorisation de notification a été refusée."
-    );
-  }
+console.log("Tilt44 notification permission before request:", currentPermission);
+
+const permission =
+  currentPermission === "granted"
+    ? "granted"
+    : await Notification.requestPermission();
+
+console.log("Tilt44 notification permission after request:", permission);
+
+if (permission !== "granted") {
+  throw new Error(
+    `Notification permission status: ${permission}`
+  );
+}
 
   const registration = await navigator.serviceWorker.ready;
   const config = await apiFetch("/notifications/vapid-public-key");

@@ -61,7 +61,7 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title || 'Tilt44', {
       body: data.body || '',
       icon: '/icon-192x192.png',
-      badge: '/icon-192x192.png',
+      badge: '/notification-badge.png',
       data: {
         url: data.url || '/',
       },
