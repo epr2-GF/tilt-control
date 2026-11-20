@@ -1,8 +1,7 @@
 
-const CACHE_NAME = 'tilt44-v3';
+const CACHE_NAME = 'tilt44-v4';
 
 const ASSETS = [
-  '/',
   '/manifest.webmanifest'
 ];
 
@@ -25,7 +24,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: remove all obsolete Tilt44 caches
+// Activate and remove obsolete caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(async (keys) => {
@@ -51,8 +50,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Never intercept API requests, SSE streams or Next.js assets.
+  // Always use the network for pages, API requests and Next.js assets.
   if (
+    event.request.mode === 'navigate' ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/_next/') ||
     event.request.headers.get('accept')?.includes('text/event-stream')
@@ -60,11 +60,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Only use the current cache, never an obsolete cache.
+  // Only use the current cache for other assets.
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
       const cached = await cache.match(event.request);
-
       return cached || fetch(event.request);
     })
   );
