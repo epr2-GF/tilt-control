@@ -26,14 +26,17 @@ export function getConfiguredEntities(): string[] {
     device.weatherLightEntity,
   ]);
 
-  return [
-    ...new Set(
-      entities.filter(
-        (entity): entity is string =>
-          typeof entity === "string" && entity.length > 0
-      )
+  
+
+return [
+  ...new Set([
+    ...entities.filter(
+      (entity): entity is string =>
+        typeof entity === "string" && entity.length > 0
     ),
-  ];
+    "input_boolean.security_mode",
+  ]),
+];
 }
 
 export function getDeviceStatusLogEntities(): string[] {
