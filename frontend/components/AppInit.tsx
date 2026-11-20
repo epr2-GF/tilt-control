@@ -17,14 +17,35 @@ export default function AppInit({
       return;
     }
 
-    navigator.serviceWorker
-      .register("/sw.js", { scope: "/" })
-      .then((registration) => {
-        console.log("Tilt44 service worker registered:", registration.scope);
-      })
-      .catch((error) => {
-        console.error("Tilt44 service worker registration failed:", error);
+
+navigator.serviceWorker
+  .register("/sw.js", { scope: "/" })
+  .then(async (registration) => {
+    console.log("Tilt44 service worker registered:", registration.scope);
+
+    // Check whether a newer service worker is available.
+    await registration.update();
+
+    if (registration.waiting) {
+      console.log("A new service worker is waiting.");
+    }
+
+    registration.addEventListener("updatefound", () => {
+      const newWorker = registration.installing;
+
+      if (!newWorker) return;
+
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "activated") {
+          console.log("Tilt44 service worker updated and activated.");
+        }
       });
+    });
+  })
+  .catch((error) => {
+    console.error("Tilt44 service worker registration failed:", error);
+  });
+
   }, []);
 
   return <>{children}</>;

@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'tilt44-v1';
+const CACHE_NAME = 'tilt44-v2';
 
 const ASSETS = [
   '/',
@@ -26,11 +26,22 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Existing offline caching
+
+// Fetch handling
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
   if (
     event.request.method !== 'GET' ||
-    new URL(event.request.url).origin !== self.location.origin
+    url.origin !== self.location.origin
+  ) {
+    return;
+  }
+
+  // Never intercept live API streams or API requests.
+  if (
+    url.pathname.startsWith('/api/') ||
+    event.request.headers.get('accept')?.includes('text/event-stream')
   ) {
     return;
   }
@@ -41,6 +52,7 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
 
 // Web Push notifications
 self.addEventListener('push', (event) => {
