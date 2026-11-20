@@ -46,13 +46,7 @@ export function DeviceProvider({
 }) {
   const { token } = useAuth();
 
-  // DIAGNOSTIC 1: Provider rendering
-  console.log("[DeviceProvider] Render", {
-    tokenAvailable: !!token,
-  });
-
   const tokenRef = useRef<string | null>(token);
-
   tokenRef.current = token;
 
   const [states, setStates] =
@@ -104,18 +98,9 @@ export function DeviceProvider({
   */
 
   useEffect(() => {
-
-    // DIAGNOSTIC 2: Effect execution
-    console.log("[DeviceProvider] Effect running", {
-      tokenAvailable: !!token,
-    });
-
     setStates({});
 
-    if (!token) {
-      console.log("[DeviceProvider] No token - skipping connection");
-      return;
-    }
+    if (!token) return;
 
     let cancelled = false;
 
@@ -130,8 +115,6 @@ export function DeviceProvider({
 
     const loadStates = async () => {
       try {
-        console.log("[DeviceProvider] Loading initial states");
-
         const data = await apiFetch(
           "/devices/state",
           {},
@@ -169,16 +152,9 @@ export function DeviceProvider({
     const streamUrl =
       `${API_URL}/devices/stream?token=${encodeURIComponent(token)}`;
 
-    // DIAGNOSTIC 3: EventSource creation
-    console.log("[DeviceProvider] Creating SSE connection", streamUrl);
-
     const eventSource = new EventSource(streamUrl);
 
     eventSourceRef.current = eventSource;
-
-    eventSource.onopen = () => {
-      console.log("[DeviceProvider] SSE connected");
-    };
 
     eventSource.onmessage = (event) => {
       if (cancelled) return;
@@ -208,7 +184,7 @@ export function DeviceProvider({
     };
 
     eventSource.onerror = (error) => {
-      console.error("[DeviceProvider] SSE error", error);
+      console.error("SSE connection error", error);
     };
 
     /*
@@ -216,8 +192,6 @@ export function DeviceProvider({
     */
 
     return () => {
-      console.log("[DeviceProvider] Closing SSE connection");
-
       cancelled = true;
 
       eventSource.close();

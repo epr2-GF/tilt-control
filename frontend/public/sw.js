@@ -1,13 +1,12 @@
 
-const CACHE_NAME = 'tilt44-v2';
+const CACHE_NAME = 'tilt44-v3';
 
 const ASSETS = [
   '/',
   '/manifest.webmanifest'
 ];
 
-// Install and cache available assets without failing
-// the entire installation if one asset is unavailable.
+// Install
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
@@ -26,8 +25,22 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
+// Activate: remove all obsolete Tilt44 caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then(async (keys) => {
+      await Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      );
 
-// Fetch handling
+      await self.clients.claim();
+    })
+  );
+});
+
+// Fetch
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -38,21 +51,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Never intercept live API streams or API requests.
+  // Never intercept API requests, SSE streams or Next.js assets.
   if (
     url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/_next/') ||
     event.request.headers.get('accept')?.includes('text/event-stream')
   ) {
     return;
   }
 
+  // Only use the current cache, never an obsolete cache.
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(event.request);
+
+      return cached || fetch(event.request);
     })
   );
 });
-
 
 // Web Push notifications
 self.addEventListener('push', (event) => {
