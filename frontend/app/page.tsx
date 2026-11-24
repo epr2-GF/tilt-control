@@ -443,7 +443,7 @@ const zones = allZones.filter((zone) =>
 
 
 
-<div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-2">
+<div className="grid grid-cols-5 gap-2">
 
     {/* SECURITY MODE */}
   <div className="w-full min-w-0 aspect-square flex items-center justify-center rounded-xl bg-slate-800">
