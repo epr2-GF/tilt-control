@@ -152,40 +152,63 @@ const isGhostAdmin =
               mode="edit"
               deviceId={id}
               initialData={{
-                name: device.name,
-                description:
-                  device.description || "",
-                entityId:
-  device.cardType === "onOff"
-    ? ""
-    : device.entityId,
-                statusEntity:
-                  device.statusEntity || "",
-                button1Entity:
-                  device.button1Entity || "",
-                button2Entity:
-                  device.button2Entity || "",
-                humidityEntity:
-                  device.humidityEntity || "",
-                setpointEntity:
-                  device.setpointEntity || "",
-                cardType:
-                  device.cardType,
-                statusTrue:
-                  device.statusTrue ||
-                  "ON",
-                statusFalse:
-                  device.statusFalse ||
-                  "OFF",
-                zones:
-                  device.zones || [],
-                icon:
-                  device.icon ||
-                  "device",
-                enabled:
-                  device.enabled ??
-                  true,
-              }}
+  name: device.name,
+  description: device.description || "",
+
+  entityId:
+    device.cardType === "onOff"
+      ? ""
+      : device.entityId || "",
+
+  statusEntity:
+    device.statusEntity || "",
+
+  button1Entity:
+    device.button1Entity || "",
+
+  button2Entity:
+    device.button2Entity || "",
+
+  humidityEntity:
+    device.humidityEntity || "",
+
+  setpointEntity:
+    device.setpointEntity || "",
+
+  // WEATHER STATION
+  weatherHumidityEntity:
+    device.weatherHumidityEntity || "",
+
+  weatherPrecipitationEntity:
+    device.weatherPrecipitationEntity || "",
+
+  weatherWindSpeedEntity:
+    device.weatherWindSpeedEntity || "",
+
+  weatherWindGustEntity:
+    device.weatherWindGustEntity || "",
+
+  weatherLightEntity:
+    device.weatherLightEntity || "",
+
+  cardType:
+    device.cardType,
+
+  statusTrue:
+    device.statusTrue || "ON",
+
+  statusFalse:
+    device.statusFalse || "OFF",
+
+  zones:
+    device.zones || [],
+
+  icon:
+    device.icon || "device",
+
+  enabled:
+    device.enabled ?? true,
+}}
             />
           )}
 
