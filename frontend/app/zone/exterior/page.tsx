@@ -134,9 +134,6 @@ export default function ExteriorPage() {
         p-6
       "
     >
-      <div className="mb-6">
-        <BackButton />
-      </div>
 
 <ZoneHeader
   title="Extérieur"
